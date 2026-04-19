@@ -106,7 +106,7 @@ function MovieBadge({ size = 40 }) {
       }}
     >
       <img
-        src="/icons/movie-clap.gif"
+        src="/icons/movie-reel.gif"
         alt="Movie"
         draggable={false}
         style={{
