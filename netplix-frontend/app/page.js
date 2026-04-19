@@ -127,8 +127,8 @@ function Main() {
         aria-label={t("nav.owner")}
         style={{
           position: "fixed",
-          top: "16px",
-          right: "72px",
+          top: "28px",
+          right: "80px",
           zIndex: 50,
           display: "inline-flex",
           alignItems: "center",
