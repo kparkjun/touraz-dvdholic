@@ -1,0 +1,105 @@
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+.idea
+.gradle/
+out/
+infra/db
+infra/redis/data
+*/node_modules
+
+### IntelliJ IDEA ###
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/libraries/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+
+.jqwik-database
+
+# Apple/민감 키 (절대 커밋하지 말 것)
+*.p8
+AuthKey_*.p8
+
+# 로컬 비밀/키 (절대 커밋하지 말 것)
+**/application-local.yml
+**/.env
+**/.env.local
+*.local.yml
+.env
+.env.local
+env.local
+
+# Next.js build output
+netplix-frontend/.next/
+netplix-frontend/out/
+
+# CRA backup (migration artifact)
+netplix-frontend/src/_pages_cra_backup/
+
+# TWA / Bubblewrap build artifacts
+app-release-bundle.aab
+
+# R8/ProGuard mapping (large; regenerate from release build)
+/mapping.txt
+
+# Kotlin incremental cache (Gradle)
+buildSrc/.kotlin/
+app-release-signed.apk
+app-release-signed.apk.idsig
+app-release-unsigned-aligned.apk
+android.keystore
+signing.keystore
+store_icon.png
+manifest-checksum.txt
+twa-manifest.json
+local.properties
+settings.gradle.twa
+build.gradle.twa
+/settings.gradle
+/build.gradle
+/gradle.properties
+/app/
+/erd.html
+
+# Playwright MCP
+.playwright-mcp/
+
+# Test data
+test_dvd.zip
+test_dvd_csv/
+test_dvd_utf8.csv

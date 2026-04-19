@@ -1,0 +1,60 @@
+spring:
+  web:
+    resources:
+      add-mappings: false  # SPA 폴백만 SpaResourceConfig에서 처리(동일 오리진 배포 시)
+  config:
+    import:
+      - 'classpath:adapter-http-property.yml'
+      - 'classpath:adapter-persistence-property.yml'
+      - 'classpath:adapter-redis-property.yml'
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            # Heroku: KAKAO_CLIENT_ID 사용 시 Circular reference → relaxed binding 이름으로만 참조
+            client-id: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_CLIENT_ID:}
+            client-secret: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_CLIENT_SECRET:}
+            client-name: Kakao
+            authorization-grant-type: authorization_code
+            redirect-uri: "${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_REDIRECT_URI:http://localhost:3000/login/oauth2/code/kakao}"
+            scope: profile_nickname
+            client-authentication-method: client_secret_post
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+# Heroku: JWT_SECRET/AES_SECRET에 "${JWT_SECRET}" 넣으면 Circular reference → APP_* 사용. 로컬은 JWT_SECRET/AES_SECRET 가능
+jwt:
+  secret: ${APP_JWT_SECRET:${JWT_SECRET:}}
+  expire:
+    access-token: 1
+    refresh-token: 24
+
+aes:
+  secret: ${APP_AES_SECRET:${AES_SECRET:}}
+
+# OpenAI (Heroku: OPENAI_API_KEY 설정)
+openai:
+  api-key: ${OPENAI_API_KEY:}
+
+# Telegram Bot (Heroku: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID 설정)
+telegram:
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
+  chat-id: ${TELEGRAM_CHAT_ID:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    shutdown:
+      enabled: true
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true

@@ -1,0 +1,15 @@
+@email=danny.kim@kakaobank.com
+
+### 회원가입
+POST http://localhost:8080/api/v1/user/register
+Content-Type: application/json
+
+{
+  "username": "danny.kim",
+  "password": "12345",
+  "email": "danny.kim@kakaobank.com",
+  "phone": "010-1234-5678"
+}
+
+### 회원 찾기
+GET http://localhost:8080/api/v1/user/{{email}}

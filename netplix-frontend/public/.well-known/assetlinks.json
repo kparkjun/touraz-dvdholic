@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.dvdholic.app",
+      "sha256_cert_fingerprints": [
+        "1F:A5:C2:61:7F:F9:DF:44:BC:A2:AE:68:28:BF:3C:5B:B5:04:44:ED:D6:26:31:98:46:D8:AB:AB:7D:D9:44:1F"
+      ]
+    }
+  }
+]

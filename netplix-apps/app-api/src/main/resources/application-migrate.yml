@@ -1,0 +1,4 @@
+# migrate 프로필: Heroku release phase용 - JPA 없이 Flyway만 실행
+spring:
+  main:
+    web-application-type: none

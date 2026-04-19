@@ -1,0 +1,28 @@
+# 6???臾믩닑????ル┰ ??怨몄젷 ???꾩룄?????戮?빵 ???덈뺄 (40??瑜곷턄嶺뚯솘? = ??800??
+$base = "https://touraz-dvdholic-2507bcb348dd.herokuapp.com"
+
+Write-Host "=== 1. Heroku dyno ?????===" -ForegroundColor Cyan
+heroku restart -a touraz-dvdholic
+
+Write-Host "`n=== 2. ???リ옇?←뙴?????(90?? ===" -ForegroundColor Cyan
+Start-Sleep -Seconds 90
+
+Write-Host "`n=== 3. ????뤵럸?袁㏃씩 ===" -ForegroundColor Cyan
+try {
+    $health = Invoke-RestMethod -Uri "$base/actuator/health" -TimeoutSec 15
+    Write-Host "??⑤객臾? $($health.status)" -ForegroundColor Green
+} catch {
+    Write-Host "??亦껋꼶?뉒뵳?? 6????袁⑸쐩?筌? ?筌먦끉逾????????" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "`n=== 4. DVD ?꾩룄??????덈뺄 ===" -ForegroundColor Cyan
+Invoke-RestMethod -Uri "$base/api/v1/batch/dvd" -Method POST -ContentType "application/json"
+
+Write-Host "`n=== 5. ??⑤????꾩룄???????(6?? ===" -ForegroundColor Cyan
+Start-Sleep -Seconds 360
+
+Write-Host "`n=== 6. ??⑤????꾩룄??????덈뺄 ===" -ForegroundColor Cyan
+Invoke-RestMethod -Uri "$base/api/v1/batch/movie" -Method POST -ContentType "application/json"
+
+Write-Host "`n=== ?熬곣뫁??===" -ForegroundColor Green

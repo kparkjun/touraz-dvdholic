@@ -1,0 +1,70 @@
+App Store Connect ?ъ궗? ?묐떟 珥덉븞 (Reply to Resolve)
+============================================
+
+?꾨옒 ?댁슜??App Store Connect > Resolution Center > ?대떦 嫄곗젅 硫붿떆吏??"Reply"濡?遺숈뿬?ｊ린 ?섏꽭??
+(?꾩슂??遺遺꾨쭔 怨⑤씪???섏젙???ъ슜?섏꽭??)
+
+
+--- 蹂듭궗 ?쒖옉 ---
+
+Hello App Review Team,
+
+Thank you for your feedback. We have addressed the issues as follows:
+
+1. Guideline 2.1(a) - Content Loading & Login (Submission ID: 64d7cdd2-8aed-4e89-b1d3-726a77c37814)
+
+We identified and fixed the root cause: In the Capacitor iOS app, the WebView loads from capacitor://localhost, but API calls were incorrectly using this as the base URL (no backend exists there). We have now:
+
+- **Capacitor.isNativePlatform()** detection: Primary detection for iOS native app (most reliable, avoids origin timing issues)
+- **Origin fallbacks**: capacitor://, ionic://, file:// scheme detection + iOS user-agent fallback for edge cases
+- **Runtime baseURL**: Every API request now refreshes baseURL (fixes WebView initialization timing)
+- OAuth: Sign in with Apple / Kakao now correctly initiate the flow against our backend
+- Demo account login: Email/password login now reaches the backend
+- Content loading: Movie and DVD catalogs load correctly instead of loading indefinitely
+- **Retry UI**: If content fails to load (network issue), users see a "?ㅼ떆 ?쒕룄" (Retry) button instead of infinite loading
+
+Please try again:
+- Kakao Login: Tap "移댁뭅?ㅻ줈 ?쒖옉?섍린"
+- Sign in with Apple: Tap "Sign in with Apple"
+
+If login does not complete (e.g., OAuth opens in external Safari and does not return to the app), please use "濡쒓렇???놁씠 ?섎윭蹂닿린" (Browse without login) on the main page to access all movie content without logging in.
+
+Test Account (Review Notes): Please ensure you have added a valid test account in App Review Notes. Example format:
+  Email: [your-test@email.com]
+  Password: [password]
+The demo account must be registered via our Sign Up flow before submission.
+
+2. Guideline 4.2 - Minimum Functionality
+
+Our app (Touraz Holic) provides the following. You can access full content WITHOUT logging in:
+
+- On the main (landing) page, tap "?섎윭蹂닿린" (Browse) - the green button with text "濡쒓렇???놁씠 ?곹솕 ?곸꽭쨌?됱젏쨌OTT ?뺤씤"
+- This takes you to the Dashboard with: Movie/DVD catalog, search, category browsing (Action, Comedy, Drama, etc.)
+- Tap any movie card to open the detail modal: vote average (?됱젏), vote count, runtime, director, cast, OTT platforms, YouTube trailer
+- Additional features when logged in: favorites (likes), notifications, account settings
+
+3. Guideline 2.3 - Accurate Metadata (drama/movie details, features, votes)
+
+To locate movie details and votes (no login required):
+1) From the main page, tap "?섎윭蹂닿린" (Browse)
+2) Select "?멸린 ?곹솕" or "?멸린 DVD" to load the catalog
+3) Tap any movie card to open the detail modal with: vote average (?됱젏), vote count (?됱젏?몄썝), director, cast, genre, release date, OTT info, trailer link
+
+Thank you for your patience.
+
+--- 蹂듭궗 ??---
+
+
+============================================
+異붽?濡??댁빞 ???묒뾽 (泥댄겕由ъ뒪??
+============================================
+
+[ ] 1. 濡쒓렇??踰꾧렇
+    - ?ㅼ씠?곕툕 ??WebView ?ъ슜 ?щ? ?뺤씤
+    - OAuth ??由щ떎?대젆?멸? ????WebView濡??뚯븘?ㅻ뒗吏 ?뺤씤
+    - 移댁뭅??Apple 媛쒕컻??肄섏넄??Redirect URI媛 Heroku URL怨??쇱튂?섎뒗吏 ?뺤씤
+
+[ ] 2. 理쒖냼 湲곕뒫??    - ?곹솕 ?곸꽭(?됱젏, ?ы몴 ?? 媛먮룆, 異쒖뿰吏? OTT ??媛 ??쒕낫??紐⑤떖???ㅼ젣濡??쒖떆?섎뒗吏 ?뺤씤
+    - 濡쒓렇???놁씠???묎렐 媛?ν븳 肄섑뀗痢??곕え 紐⑤뱶) 異붽? 寃??
+[ ] 3. 硫뷀??곗씠??    - App Review Notes??"?곹솕 ?곸꽭쨌?ы몴 湲곕뒫 ?꾩튂" ?ㅽ겕由곗꺑/?덈궡 異붽?
+    - 濡쒓렇???ㅽ뙣 ?쒖뿉???뺤씤 媛?ν븯?꾨줉 ?곕え 怨꾩젙 ?먮뒗 ?곕え 紐⑤뱶 ?쒓났 寃??

@@ -1,0 +1,3 @@
+-- Add POSTER_PATH column to movies table
+ALTER TABLE `movies`
+ADD COLUMN `POSTER_PATH` VARCHAR(255) COMMENT '포스터 이미지 경로' AFTER `RELEASED_AT`;

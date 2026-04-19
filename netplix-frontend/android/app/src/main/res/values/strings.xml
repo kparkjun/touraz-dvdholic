@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Holic</string>
+    <string name="title_activity_main">Holic</string>
+    <string name="package_name">com.dvdholic.holic</string>
+    <string name="custom_url_scheme">com.dvdholic.holic</string>
+</resources>

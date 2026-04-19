@@ -1,0 +1,15 @@
+-- 관리자 대시보드용 일별 통계 집계 (단독 테이블)
+CREATE TABLE IF NOT EXISTS `admin_daily_stats`
+(
+    STAT_DATE          DATE    NOT NULL COMMENT '통계 일자',
+    ACTIVE_USER_COUNT  INT     NOT NULL DEFAULT 0 COMMENT '당일 활성 사용자 수',
+    TOTAL_USER_COUNT   INT     NOT NULL DEFAULT 0 COMMENT '전체 누적 사용자 수',
+    ANDROID_COUNT      INT     NOT NULL DEFAULT 0 COMMENT 'Android 유입 수',
+    IOS_COUNT          INT     NOT NULL DEFAULT 0 COMMENT 'iOS 유입 수',
+    WEB_COUNT          INT     NOT NULL DEFAULT 0 COMMENT 'Web 유입 수',
+    OTHER_COUNT        INT     NOT NULL DEFAULT 0 COMMENT '기타 유입 수',
+    NEW_SIGNUP_COUNT   INT     NOT NULL DEFAULT 0 COMMENT '신규 가입 수',
+    CREATED_AT         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '집계 시각',
+
+    PRIMARY KEY (STAT_DATE)
+);

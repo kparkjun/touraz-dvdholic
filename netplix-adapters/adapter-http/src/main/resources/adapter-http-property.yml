@@ -1,0 +1,20 @@
+# TMDB: Heroku에 TMDB_API_KEY 미설정 시 Circular reference 방지를 위해 기본값 빈 문자열 사용. 설정 시 영화 API 동작.
+tmdb:
+  auth:
+    api-key: ${TMDB_API_KEY:}
+    access-token: ${TMDB_ACCESS_TOKEN:}
+  api:
+    movie-lists:
+      now-playing: https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_API_KEY:}&with_release_type=5
+      movie-playing: https://api.themoviedb.org/3/movie/now_playing?api_key=${TMDB_API_KEY:}
+      popular: https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_API_KEY:}
+      top-rated: https://api.themoviedb.org/3/movie/top_rated?api_key=${TMDB_API_KEY:}
+      upcoming: https://api.themoviedb.org/3/movie/upcoming?api_key=${TMDB_API_KEY:}
+    movie-details: https://api.themoviedb.org/3/movie/{movie_id}?api_key=${TMDB_API_KEY:}&language=ko-KR
+    movie-credits: https://api.themoviedb.org/3/movie/{movie_id}/credits?api_key=${TMDB_API_KEY:}
+    movie-release-dates: https://api.themoviedb.org/3/movie/{movie_id}/release_dates?api_key=${TMDB_API_KEY:}
+    movie-videos: https://api.themoviedb.org/3/movie/{movie_id}/videos?api_key=${TMDB_API_KEY:}&language=ko-KR
+    movie-providers: https://api.themoviedb.org/3/movie/{movie_id}/watch/providers?api_key=${TMDB_API_KEY:}
+    movie-recommendations: https://api.themoviedb.org/3/movie/{movie_id}/recommendations?api_key=${TMDB_API_KEY:}&language=ko-KR&page=1
+    movie-reviews: https://api.themoviedb.org/3/movie/{movie_id}/reviews?api_key=${TMDB_API_KEY:}&language=ko-KR&page=1
+    trending-week: https://api.themoviedb.org/3/trending/movie/week?api_key=${TMDB_API_KEY:}

@@ -1,0 +1,62 @@
+server:
+  port: 8081
+
+# Movie 배치: true=영화당 상세 API 6회 호출(느리지만 풍부), false=리스트만(페이지당 1회, 빠름)
+tmdb:
+  batch:
+    movie:
+      enrich: true
+spring:
+  batch:
+    job:
+      # 스케줄러에서 실행할 때는 자동 실행 방지
+      name: ${job.name:NONE}
+      enabled: false # 애플리케이션 시작 시 자동 실행 방지
+  datasource:
+    hikari:
+            # sessionVariables: 쉼표(,) 구분 (세미콜론은 미적용). lock_wait_timeout=락 대기 시 30초 후 실패
+      jdbc-url: jdbc:mysql://localhost:3306/netplix?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&sessionVariables=net_read_timeout=30,net_write_timeout=30,lock_wait_timeout=30&socketTimeout=30000
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      username: ${DB_USERNAME:root}
+      password: ${DB_PASSWORD}
+      connection-timeout: 30000
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    hibernate:
+      ddl-auto: validate
+    generate-ddl: false
+    open-in-view: false
+    database: mysql
+    show-sql: true
+  config:
+    import:
+      - "classpath:adapter-http-property.yml"
+      - "classpath:adapter-persistence-property.yml"
+  profiles:
+    active: local
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-name: Kakao
+            authorization-grant-type: authorization_code
+            redirect-uri: "${KAKAO_REDIRECT_URI:http://localhost:3000/login/oauth2/code/kakao}"
+            scope: profile_nickname
+            client-authentication-method: client_secret_post
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+jwt:
+  secret: ${JWT_SECRET}
+  expire:
+    access-token: 3
+    refresh-token: 24

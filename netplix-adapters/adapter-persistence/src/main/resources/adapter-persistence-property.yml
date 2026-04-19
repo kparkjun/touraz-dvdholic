@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    hikari:
+      # 로컬: Docker MySQL (DB_HOST 미설정 시 localhost). Heroku: JawsDB/ClearDB 등 추가 후 DB_HOST, DB_PORT, DB_NAME 설정
+      jdbc-url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:netplix}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&useSSL=${DB_USE_SSL:false}&allowPublicKeyRetrieval=true
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      username: ${DB_USERNAME:root}
+      # 로컬: DB_PASSWORD 미설정 시 빈 문자열(비밀번호 없음) 시도. 프로필 local 이면 application-local.yml에서 admin 등 지정
+      password: ${DB_PASSWORD:}
+      maximum-pool-size: ${DB_MAX_POOL_SIZE:5}
+      minimum-idle: ${DB_MIN_IDLE:1}
+      connection-timeout: 30000
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: validate
+    generate-ddl: false
+    open-in-view: false
+    show-sql: true
+  flyway:
+    locations: classpath:flyway
+    baseline-on-migrate: true
+    baseline-version: 1
+    enabled: true

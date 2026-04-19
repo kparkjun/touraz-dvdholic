@@ -1,0 +1,11 @@
+{
+  "name": "touraz-dvdholic",
+  "private": true,
+  "description": "Heroku build: frontend only (backend built by Gradle)",
+  "scripts": {
+    "build": "cd netplix-frontend && npm ci && npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

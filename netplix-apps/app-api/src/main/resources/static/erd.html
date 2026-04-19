@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Touraz Holic ERD</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+KR:wght@300;500;700&display=swap');
+
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --accent-blue: #58a6ff;
+  --accent-green: #3fb950;
+  --accent-purple: #bc8cff;
+  --accent-orange: #d29922;
+  --accent-red: #f85149;
+  --accent-cyan: #39d2c0;
+  --text: #e6edf3;
+  --text-dim: #8b949e;
+  --pk: #ffd700;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  padding: 40px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent-blue);
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: var(--text-dim);
+  font-size: 14px;
+  margin-bottom: 40px;
+}
+
+.erd-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  max-width: 1600px;
+}
+
+.section-label {
+  grid-column: 1 / -1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding: 12px 0 4px;
+  margin-top: 16px;
+}
+
+.section-user { color: var(--accent-blue); border-bottom: 2px solid var(--accent-blue); }
+.section-movie { color: var(--accent-green); border-bottom: 2px solid var(--accent-green); }
+.section-dvd { color: var(--accent-orange); border-bottom: 2px solid var(--accent-orange); }
+.section-system { color: var(--accent-purple); border-bottom: 2px solid var(--accent-purple); }
+.section-admin { color: var(--accent-red); border-bottom: 2px solid var(--accent-red); }
+
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.table-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.table-header {
+  padding: 12px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-user { background: linear-gradient(135deg, #1a3a5c, #162b44); color: var(--accent-blue); }
+.header-movie { background: linear-gradient(135deg, #1a3c1a, #16302a); color: var(--accent-green); }
+.header-dvd { background: linear-gradient(135deg, #3c2e0a, #2a2210); color: var(--accent-orange); }
+.header-system { background: linear-gradient(135deg, #2a1a3c, #201530); color: var(--accent-purple); }
+.header-admin { background: linear-gradient(135deg, #3c1a1a, #301515); color: var(--accent-red); }
+
+.table-body { padding: 4px 0; }
+
+.col-row {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  gap: 6px;
+  padding: 3px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  align-items: center;
+  border-bottom: 1px solid rgba(48,54,61,0.4);
+}
+
+.col-row:last-child { border-bottom: none; }
+.col-row:hover { background: rgba(88,166,255,0.05); }
+
+.col-key { font-size: 9px; font-weight: 700; text-align: center; }
+.col-key.pk { color: var(--pk); }
+.col-key.fk { color: var(--accent-cyan); }
+
+.col-name { color: var(--text); font-weight: 500; }
+.col-name.pk-name { color: var(--pk); font-weight: 700; }
+
+.col-type { color: var(--text-dim); font-size: 10px; text-align: right; }
+
+.relations {
+  grid-column: 1 / -1;
+  margin-top: 32px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.relations h2 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  color: var(--accent-cyan);
+  margin-bottom: 16px;
+}
+
+.rel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 8px;
+}
+
+.rel-item {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 6px 12px;
+  background: rgba(57,210,192,0.05);
+  border-left: 3px solid var(--accent-cyan);
+  border-radius: 0 4px 4px 0;
+}
+
+.rel-item .tbl { color: var(--accent-blue); font-weight: 600; }
+.rel-item .arrow { color: var(--text-dim); margin: 0 6px; }
+</style>
+</head>
+<body>
+
+<h1>Touraz Holic ERD</h1>
+<p class="subtitle">Database Schema &middot; 15 Tables &middot; MySQL (utf8mb4)</p>
+
+<div class="erd-container">
+
+  <div class="section-label section-user">&#9824; User Domain</div>
+
+  <div class="table-card">
+    <div class="table-header header-user">users</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">USER_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">USER_NAME</span><span class="col-type">VARCHAR(50)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">PASSWORD</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">EMAIL</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">PHONE</span><span class="col-type">VARCHAR(255) NULL</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">STATUS</span><span class="col-type">VARCHAR(20) 'ACTIVE'</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">WITHDRAWN_AT</span><span class="col-type">DATETIME NULL</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">LAST_LOGIN_AT</span><span class="col-type">DATETIME NULL</span></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header header-user">social_users</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">SOCIAL_USER_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">USER_NAME</span><span class="col-type">VARCHAR(50)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">PROVIDER</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">PROVIDER_ID</span><span class="col-type">VARCHAR(255)</span></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header header-user">user_subscriptions</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">USER_SUBSCRIPTION_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key fk">FK</span><span class="col-name">USER_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">SUBSCRIPTION_NAME</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">START_AT / END_AT</span><span class="col-type">DATETIME</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">VALID_YN</span><span class="col-type">TINYINT(1)</span></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header header-user">tokens</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">TOKEN_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key fk">FK</span><span class="col-name">USER_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">ACCESS_TOKEN</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">REFRESH_TOKEN</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">ACCESS_TOKEN_EXPIRES_AT</span><span class="col-type">DATETIME</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">REFRESH_TOKEN_EXPIRES_AT</span><span class="col-type">DATETIME</span></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header header-user">user_histories</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">USER_HISTORY_ID</span><span class="col-type">BIGINT AI</span></div>
+      <div class="col-row"><span class="col-key fk">FK</span><span class="col-name">USER_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">USER_ROLE</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">REQ_IP / REQ_METHOD</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">REQ_URL</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">REQ_HEADER / REQ_PAYLOAD</span><span class="col-type">TEXT</span></div>
+    </div>
+  </div>
+
+  <div class="section-label section-movie">&#9733; Movie / Content Domain</div>
+
+  <div class="table-card">
+    <div class="table-header header-movie">movies</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">MOVIE_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">MOVIE_NAME</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">IS_ADULT</span><span class="col-type">TINYINT(1)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">GENRE</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">OVERVIEW</span><span class="col-type">TEXT</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">RELEASED_AT</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">POSTER_PATH</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">BACKDROP_PATH</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">CONTENT_TYPE</span><span class="col-type">VARCHAR(20) 'dvd'</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">VOTE_AVERAGE</span><span class="col-type">DOUBLE</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">CAST / DIRECTOR</span><span class="col-type">VARCHAR(500/255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">RUNTIME</span><span class="col-type">INT</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">BUDGET / REVENUE</span><span class="col-type">BIGINT</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">TRAILER_URL</span><span class="col-type">VARCHAR(500)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">SPOKEN_LANGUAGES</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">HOMEPAGE</span><span class="col-type">VARCHAR(500)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name" style="color:var(--text-dim);font-style:italic">+8 more TMDB columns</span><span class="col-type"></span></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header header-movie">user_movie_likes</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">USER_MOVIE_LIKE_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key fk">FK</span><span class="col-name">USER_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key fk">FK</span><span class="col-name">MOVIE_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">CONTENT_TYPE</span><span class="col-type">VARCHAR(20) 'movie'</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">VOTE_TYPE</span><span class="col-type">VARCHAR(10) 'like'</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">LIKE_YN</span><span class="col-type">TINYINT(1)</span></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header header-movie">user_movie_downloads</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">USER_MOVIE_DOWNLOAD_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key fk">FK</span><span class="col-name">USER_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key fk">FK</span><span class="col-name">MOVIE_ID</span><span class="col-type">VARCHAR(255)</span></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header header-movie">movie_reviews</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">REVIEW_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key fk">FK</span><span class="col-name">USER_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">MOVIE_NAME</span><span class="col-type">VARCHAR(500)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">CONTENT_TYPE</span><span class="col-type">VARCHAR(20) 'movie'</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">ONE_LINER</span><span class="col-type">VARCHAR(500)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">FULL_REVIEW</span><span class="col-type">TEXT</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">IS_SPOILER</span><span class="col-type">TINYINT(1) 0</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">HELPFUL_COUNT</span><span class="col-type">INT 0</span></div>
+    </div>
+  </div>
+
+  <div class="section-label section-dvd">&#9679; DVD Store Domain</div>
+
+  <div class="table-card">
+    <div class="table-header header-dvd">dvd_stores</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">ID</span><span class="col-type">BIGINT AI</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">MANAGEMENT_NO</span><span class="col-type">VARCHAR(200)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">AREA_CODE</span><span class="col-type">VARCHAR(50)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">BUSINESS_NAME</span><span class="col-type">VARCHAR(500)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">STATUS_NAME / CODE</span><span class="col-type">VARCHAR(50/10)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">ROAD_ADDRESS</span><span class="col-type">TEXT</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">JIBUN_ADDRESS</span><span class="col-type">TEXT</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">PHONE</span><span class="col-type">VARCHAR(100)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">LATITUDE / LONGITUDE</span><span class="col-type">DOUBLE</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">LICENSE_DATE</span><span class="col-type">VARCHAR(30)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">CLOSURE_DATE</span><span class="col-type">VARCHAR(30)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name" style="color:var(--text-dim);font-style:italic">+20 more CSV columns</span><span class="col-type"></span></div>
+    </div>
+  </div>
+
+  <div class="section-label section-system">&#9670; Notification / Log</div>
+
+  <div class="table-card">
+    <div class="table-header header-system">notifications</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">NOTIFICATION_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key fk">FK</span><span class="col-name">USER_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">TITLE</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">MESSAGE</span><span class="col-type">VARCHAR(1000)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">NOTIFICATION_TYPE</span><span class="col-type">VARCHAR(50)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">RELATED_ID</span><span class="col-type">TEXT</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">IS_READ</span><span class="col-type">BOOLEAN false</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">SENT_AT</span><span class="col-type">DATETIME</span></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header header-system">access_logs</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">ACCESS_LOG_ID</span><span class="col-type">BIGINT AI</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">USER_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">PLATFORM</span><span class="col-type">VARCHAR(20)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">REQ_IP</span><span class="col-type">VARCHAR(45)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">CREATED_AT</span><span class="col-type">DATETIME</span></div>
+    </div>
+  </div>
+
+  <div class="section-label section-admin">&#9830; Admin Domain</div>
+
+  <div class="table-card">
+    <div class="table-header header-admin">admin</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">ADMIN_ID</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">ADMIN_EMAIL</span><span class="col-type">VARCHAR(255) UQ</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">PASSWORD</span><span class="col-type">VARCHAR(255)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">ADMIN_NAME</span><span class="col-type">VARCHAR(100)</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">ROLE</span><span class="col-type">VARCHAR(50) 'ADMIN'</span></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header header-admin">admin_daily_stats</div>
+    <div class="table-body">
+      <div class="col-row"><span class="col-key pk">PK</span><span class="col-name pk-name">STAT_DATE</span><span class="col-type">DATE</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">ACTIVE_USER_COUNT</span><span class="col-type">INT 0</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">TOTAL_USER_COUNT</span><span class="col-type">INT 0</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">ANDROID_COUNT</span><span class="col-type">INT 0</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">IOS_COUNT</span><span class="col-type">INT 0</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">WEB_COUNT</span><span class="col-type">INT 0</span></div>
+      <div class="col-row"><span class="col-key"></span><span class="col-name">NEW_SIGNUP_COUNT</span><span class="col-type">INT 0</span></div>
+    </div>
+  </div>
+
+  <div class="relations">
+    <h2>Relationships</h2>
+    <div class="rel-grid">
+      <div class="rel-item"><span class="tbl">users</span><span class="arrow"> ── 1 : N ──▶ </span><span class="tbl">tokens</span> .USER_ID</div>
+      <div class="rel-item"><span class="tbl">users</span><span class="arrow"> ── 1 : N ──▶ </span><span class="tbl">user_subscriptions</span> .USER_ID</div>
+      <div class="rel-item"><span class="tbl">users</span><span class="arrow"> ── 1 : N ──▶ </span><span class="tbl">user_histories</span> .USER_ID</div>
+      <div class="rel-item"><span class="tbl">users</span><span class="arrow"> ── 1 : N ──▶ </span><span class="tbl">user_movie_likes</span> .USER_ID</div>
+      <div class="rel-item"><span class="tbl">users</span><span class="arrow"> ── 1 : N ──▶ </span><span class="tbl">user_movie_downloads</span> .USER_ID</div>
+      <div class="rel-item"><span class="tbl">users</span><span class="arrow"> ── 1 : N ──▶ </span><span class="tbl">movie_reviews</span> .USER_ID</div>
+      <div class="rel-item"><span class="tbl">users</span><span class="arrow"> ── 1 : N ──▶ </span><span class="tbl">notifications</span> .USER_ID</div>
+      <div class="rel-item"><span class="tbl">movies</span><span class="arrow"> ── 1 : N ──▶ </span><span class="tbl">user_movie_likes</span> .MOVIE_ID</div>
+      <div class="rel-item"><span class="tbl">movies</span><span class="arrow"> ── 1 : N ──▶ </span><span class="tbl">user_movie_downloads</span> .MOVIE_ID</div>
+    </div>
+  </div>
+
+  <div class="relations" style="margin-top:16px">
+    <h2>Audit Columns (all tables)</h2>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim)">
+      CREATED_AT (DATETIME) &middot; CREATED_BY (VARCHAR) &middot; MODIFIED_AT (DATETIME) &middot; MODIFIED_BY (VARCHAR)
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
