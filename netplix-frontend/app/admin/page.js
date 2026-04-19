@@ -42,6 +42,9 @@ function LoginForm({ onLogin }) {
       });
       if (res.data?.success && res.data?.data?.token) {
         localStorage.setItem("adminToken", res.data.data.token);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("admin-token-stored"));
+        }
         onLogin();
       } else {
         setError(t("admin.loginFailed"));
@@ -565,6 +568,9 @@ function Admin() {
   const handleLogin = () => setIsLoggedIn(true);
   const handleLogout = () => {
     localStorage.removeItem("adminToken");
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("admin-token-stored"));
+    }
     setIsLoggedIn(false);
   };
 

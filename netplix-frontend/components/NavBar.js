@@ -8,6 +8,7 @@ import { Globe } from 'lucide-react';
 
 export default function NavBar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { t } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
@@ -15,12 +16,22 @@ export default function NavBar() {
 
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem('token'));
+    setIsAdmin(!!localStorage.getItem('adminToken'));
   }, [pathname]);
 
   useEffect(() => {
-    const onTokenStored = () => setIsLoggedIn(!!localStorage.getItem('token'));
-    window.addEventListener('token-stored', onTokenStored);
-    return () => window.removeEventListener('token-stored', onTokenStored);
+    const refreshAuth = () => {
+      setIsLoggedIn(!!localStorage.getItem('token'));
+      setIsAdmin(!!localStorage.getItem('adminToken'));
+    };
+    window.addEventListener('token-stored', refreshAuth);
+    window.addEventListener('admin-token-stored', refreshAuth);
+    window.addEventListener('storage', refreshAuth);
+    return () => {
+      window.removeEventListener('token-stored', refreshAuth);
+      window.removeEventListener('admin-token-stored', refreshAuth);
+      window.removeEventListener('storage', refreshAuth);
+    };
   }, []);
 
   const handleLogout = (e) => {
@@ -36,6 +47,7 @@ export default function NavBar() {
         <BrandLink isDashboard={pathname === '/dashboard'} isLoggedIn={isLoggedIn} />
         <AuthActions
           isLoggedIn={isLoggedIn}
+          isAdmin={isAdmin}
           isAuthPage={isAuthPage}
           pathname={pathname}
           onLogout={handleLogout}
@@ -84,7 +96,7 @@ function LanguageToggle() {
   );
 }
 
-function AuthActions({ isLoggedIn, isAuthPage, pathname, onLogout }) {
+function AuthActions({ isLoggedIn, isAdmin, isAuthPage, pathname, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { t } = useTranslation();
   const menuRef = useRef(null);
@@ -133,12 +145,8 @@ function AuthActions({ isLoggedIn, isAuthPage, pathname, onLogout }) {
         <li key="signup"><Link href="/signup" className="app-chip app-chip-primary" onClick={closeMenu}>{t('nav.signup')}</Link></li>
       );
     }
-    navItems.push(
-      <li key="admin"><Link href="/admin" className="app-chip app-chip-owner" onClick={closeMenu}>{t('nav.owner')}</Link></li>
-    );
   } else {
     navItems.push(
-      <li key="admin"><Link href="/admin" className="app-chip app-chip-owner" onClick={closeMenu}>{t('nav.owner')}</Link></li>,
       <li key="account"><Link href="/account" className="app-chip app-chip-secondary" onClick={closeMenu}>{t('nav.accountSettings')}</Link></li>,
       <li key="mypage"><Link href="/mypage" className="app-chip app-chip-mypage" onClick={closeMenu}>{t('nav.mypage')}</Link></li>,
       <li key="logout">
@@ -146,6 +154,13 @@ function AuthActions({ isLoggedIn, isAuthPage, pathname, onLogout }) {
           {t('nav.logout')}
         </button>
       </li>
+    );
+  }
+
+  // 사장님 링크는 adminToken이 존재할 때만 노출 (admin/3819 로그인 후)
+  if (isAdmin) {
+    navItems.unshift(
+      <li key="owner"><Link href="/admin" className="app-chip app-chip-owner" onClick={closeMenu}>{t('nav.owner')}</Link></li>
     );
   }
 
