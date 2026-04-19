@@ -24,7 +24,7 @@ async function main() {
     .setProtectedHeader({ alg: "ES256", kid: "KY9B5XN6WQ" })
     .setIssuedAt()
     .setIssuer("5LCBBV4KNB")
-    .setSubject("com.dvdholic.service")
+    .setSubject("com.touraz.holic.service")
     .setAudience("https://appleid.apple.com")
     .setExpirationTime("180d")
     .sign(key);

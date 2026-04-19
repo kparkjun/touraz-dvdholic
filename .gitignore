@@ -9,6 +9,7 @@ out/
 infra/db
 infra/redis/data
 */node_modules
+node_modules/
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
