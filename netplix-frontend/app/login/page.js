@@ -8,9 +8,19 @@ import { getApiBaseUrl } from "@/lib/apiConfig";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 let Capacitor, Browser;
+let capacitorReadyPromise = null;
+function ensureCapacitorLoaded() {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (Capacitor && Browser) return Promise.resolve();
+  if (capacitorReadyPromise) return capacitorReadyPromise;
+  capacitorReadyPromise = Promise.all([
+    import("@capacitor/core").then(m => { Capacitor = m.Capacitor; }).catch(() => {}),
+    import("@capacitor/browser").then(m => { Browser = m.Browser; }).catch(() => {}),
+  ]).then(() => {});
+  return capacitorReadyPromise;
+}
 if (typeof window !== "undefined") {
-  import("@capacitor/core").then(m => { Capacitor = m.Capacitor; });
-  import("@capacitor/browser").then(m => { Browser = m.Browser; });
+  ensureCapacitorLoaded();
 }
 import OAuthLoadingOverlay from "@/components/ui/OAuthLoadingOverlay";
 
@@ -51,6 +61,9 @@ function LoginContent() {
       url.searchParams.delete("error");
       window.history.replaceState({}, "", url.pathname + (url.search || ""));
     }
+    // iOS/Android 네이티브 앱에서 Capacitor 모듈을 미리 로드해 두어,
+    // 사용자가 바로 카카오/애플 버튼을 눌렀을 때 첫 시도부터 SFSafari/Custom Tabs로 열리도록 보장.
+    ensureCapacitorLoaded();
   }, []);
 
   const [email, setEmail] = useState("");
@@ -111,15 +124,24 @@ function LoginContent() {
 
   const getApiBase = getApiBaseUrl;
 
-  const handleKakaoLogin = async () => {
+  const startOAuth = async (provider) => {
     if (isKakaoRedirecting) return;
     setIsKakaoRedirecting(true);
-    const oauthUrl = `${getApiBase()}/oauth2/authorization/kakao`;
-    
-    if (Capacitor?.isNativePlatform?.()) {
+    const oauthUrl = `${getApiBase()}/oauth2/authorization/${provider}`;
+
+    // 네이티브 플러그인이 아직 동적 import 중일 수 있으므로 반드시 대기.
+    // 첫 탭에서 바로 SFSafariViewController / Chrome Custom Tabs로 열리게 하여
+    // WKWebView가 OAuth URL을 직접 처리하면서 발생하는 쿠키/리다이렉트 실패를 방지.
+    try {
+      await ensureCapacitorLoaded();
+    } catch (_) {}
+
+    const isNative = !!(Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+
+    if (isNative && Browser && typeof Browser.open === 'function') {
       document.cookie = "X-App-Platform=native;path=/;max-age=300;SameSite=None;Secure";
       try {
-        await Browser.open({ 
+        await Browser.open({
           url: oauthUrl,
           presentationStyle: 'popover',
           toolbarColor: '#000000'
@@ -134,28 +156,8 @@ function LoginContent() {
     }
   };
 
-  const handleAppleLogin = async () => {
-    if (isKakaoRedirecting) return;
-    setIsKakaoRedirecting(true);
-    const oauthUrl = `${getApiBase()}/oauth2/authorization/apple`;
-    
-    if (Capacitor?.isNativePlatform?.()) {
-      document.cookie = "X-App-Platform=native;path=/;max-age=300;SameSite=None;Secure";
-      try {
-        await Browser.open({ 
-          url: oauthUrl,
-          presentationStyle: 'popover',
-          toolbarColor: '#000000'
-        });
-      } catch (e) {
-        console.error('Browser.open failed:', e);
-        window.location.href = oauthUrl;
-      }
-    } else {
-      document.cookie = "X-App-Platform=;path=/;max-age=0";
-      window.location.href = oauthUrl;
-    }
-  };
+  const handleKakaoLogin = () => startOAuth('kakao');
+  const handleAppleLogin = () => startOAuth('apple');
 
   const isDisabled = isLoggingIn || isKakaoRedirecting;
 
