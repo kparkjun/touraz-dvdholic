@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fast.campus.netplix.cinetrip.LlmMappingPort;
 import fast.campus.netplix.cinetrip.MovieRegionSuggestion;
 import fast.campus.netplix.movie.NetplixMovie;
+import fast.campus.netplix.tour.TourPhoto;
+import fast.campus.netplix.tour.TourPhotoPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -18,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,11 +50,32 @@ public class OpenAiMappingAdapter implements LlmMappingPort {
     );
     private static final Set<String> VALID_MAPPING_TYPES = Set.of("SHOT", "BACKGROUND", "THEME");
 
+    // lDongRegnCd(11/26/...) → KorService2 areaCode(1~8,31~39). Photo 어댑터와 동일한 표.
+    private static final Map<String, String> LDONG_TO_AREA_CODE = Map.ofEntries(
+            Map.entry("11", "1"),  Map.entry("26", "6"),  Map.entry("27", "4"),
+            Map.entry("28", "2"),  Map.entry("29", "5"),  Map.entry("30", "3"),
+            Map.entry("31", "7"),  Map.entry("36", "8"),  Map.entry("41", "31"),
+            Map.entry("42", "32"), Map.entry("43", "33"), Map.entry("44", "34"),
+            Map.entry("45", "37"), Map.entry("46", "38"), Map.entry("47", "35"),
+            Map.entry("48", "36"), Map.entry("50", "39"), Map.entry("51", "32"),
+            Map.entry("52", "37")
+    );
+
     @Value("${openai.api-key:}")
     private String apiKey;
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final RestTemplate restTemplate = createRestTemplate();
+
+    /**
+     * 관광공모전(사진) 수상작 조회 포트. LLM 프롬프트 보강용으로만 사용하므로 선택적 의존성.
+     * 포토 API 가 미설정이면 자연스럽게 빈 리스트를 반환하므로 별도 가드 불필요.
+     */
+    private final TourPhotoPort tourPhotoPort;
+
+    public OpenAiMappingAdapter(TourPhotoPort tourPhotoPort) {
+        this.tourPhotoPort = tourPhotoPort;
+    }
 
     private static RestTemplate createRestTemplate() {
         org.springframework.http.client.SimpleClientHttpRequestFactory factory =
@@ -95,7 +119,7 @@ public class OpenAiMappingAdapter implements LlmMappingPort {
     }
 
     private String buildPrompt(NetplixMovie m) {
-        StringBuilder sb = new StringBuilder(600);
+        StringBuilder sb = new StringBuilder(900);
         sb.append("영화 제목: ").append(nullSafe(m.getMovieName())).append('\n');
         if (m.getOriginalTitle() != null) sb.append("원제: ").append(m.getOriginalTitle()).append('\n');
         if (m.getGenre() != null)          sb.append("장르: ").append(m.getGenre()).append('\n');
@@ -104,7 +128,66 @@ public class OpenAiMappingAdapter implements LlmMappingPort {
         if (m.getCast() != null)           sb.append("출연: ").append(m.getCast()).append('\n');
         if (m.getTagline() != null)        sb.append("태그라인: ").append(m.getTagline()).append('\n');
         if (m.getOverview() != null)       sb.append("줄거리: ").append(m.getOverview()).append('\n');
+
+        String photoContext = buildPhotoContext(m);
+        if (!photoContext.isEmpty()) {
+            sb.append('\n').append("[참고 - 한국관광공사 관광공모전 수상작 중 해당 영화 키워드에 걸리는 항목]\n")
+              .append(photoContext)
+              .append("위 항목이 있으면 촬영지/배경지 후보 단서로만 참고하고, 확실한 근거 없이 SHOT 으로 단정하지 말 것. ")
+              .append("단순 키워드 일치만으로는 confidence 최대 3 까지만 허용.\n");
+        }
         return sb.toString();
+    }
+
+    /**
+     * 관광공모전 사진 중 영화 제목/원제를 부분 일치 키워드로 검색해 있으면 상위 5건의
+     * (촬영지명, 광역명, 키워드) 를 프롬프트에 붙인다.
+     * - lDongRegnCd 를 KorService2 areaCode 로 변환해 함께 제시 → LLM 이 area_code 결정을 돕는다.
+     * - 포토 API 미설정/오류는 조용히 빈 문자열 반환.
+     */
+    private String buildPhotoContext(NetplixMovie m) {
+        try {
+            if (tourPhotoPort == null || !tourPhotoPort.isConfigured()) return "";
+            Map<String, TourPhoto> dedup = new LinkedHashMap<>();
+            for (String kw : collectKeywords(m)) {
+                for (TourPhoto p : tourPhotoPort.fetchByKeyword(kw, 5)) {
+                    String id = p.getContentId();
+                    if (id == null) id = nullSafe(p.getTitle()) + "|" + nullSafe(p.getFilmSite());
+                    dedup.putIfAbsent(id, p);
+                    if (dedup.size() >= 5) break;
+                }
+                if (dedup.size() >= 5) break;
+            }
+            if (dedup.isEmpty()) return "";
+            StringBuilder sb = new StringBuilder(400);
+            for (TourPhoto p : dedup.values()) {
+                sb.append("- ");
+                if (p.getTitle() != null) sb.append(p.getTitle());
+                if (p.getFilmSite() != null) sb.append(" @ ").append(p.getFilmSite());
+                String area = LDONG_TO_AREA_CODE.get(p.getLDongRegnCd());
+                if (area != null) sb.append(" [areaCode=").append(area).append(']');
+                if (p.getKeywords() != null && !p.getKeywords().isBlank()) {
+                    String kws = p.getKeywords().trim();
+                    if (kws.length() > 80) kws = kws.substring(0, 80);
+                    sb.append(" · keywords: ").append(kws);
+                }
+                sb.append('\n');
+            }
+            return sb.toString();
+        } catch (Exception ex) {
+            log.debug("[LLM-MAPPING] 사진 컨텍스트 실패 (무시): {}", ex.getMessage());
+            return "";
+        }
+    }
+
+    private static List<String> collectKeywords(NetplixMovie m) {
+        List<String> out = new ArrayList<>(2);
+        if (m.getMovieName() != null && !m.getMovieName().isBlank()) out.add(m.getMovieName().trim());
+        if (m.getOriginalTitle() != null && !m.getOriginalTitle().isBlank()
+                && !m.getOriginalTitle().equalsIgnoreCase(m.getMovieName())) {
+            out.add(m.getOriginalTitle().trim());
+        }
+        return out;
     }
 
     /** 시스템 프롬프트 — 구조화된 JSON 출력 강제 + 환각 방지. */

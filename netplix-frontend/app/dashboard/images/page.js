@@ -6,6 +6,7 @@ import { Undo2 } from "lucide-react";
 import axios from "@/lib/axiosConfig";
 import { getMovieTitle, getPosterPath, getBackdropPath, getOverview, getTagline } from "@/lib/movieLang";
 import CineTripCTA from "@/components/CineTripCTA";
+import PhotoGalleryStrip from "@/components/PhotoGalleryStrip";
 
 const baseUrl = "https://image.tmdb.org/t/p/original";
 const palette = {
@@ -564,6 +565,17 @@ function MovieImagesContent() {
 
         {/* CineTrip CTA - 이 영화로 떠나는 여행 */}
         <CineTripCTA movieName={movieName} posterUrl={posterPath || backdropPath || ""} />
+
+        {/* 한국관광공사 수상작 포토 - 이 영화 키워드로 교차 검색 */}
+        {movieName && (
+          <div style={{ padding: "0 15px", marginBottom: 12 }}>
+            <PhotoGalleryStrip
+              keyword={movieName}
+              limit={10}
+              title={`"${movieName}" 관련 관광 수상작`}
+            />
+          </div>
+        )}
 
         {/* 줄거리 */}
         <div style={{ padding: "15px", color: palette.text, fontSize: "13px", lineHeight: "1.6", borderBottom: `1px solid ${palette.border}`, textAlign: "center", marginBottom: "12px" }}>

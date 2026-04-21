@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import axios from "@/lib/axiosConfig";
 
@@ -9,6 +9,81 @@ if (typeof window !== "undefined") {
   CircleMarker = rl.CircleMarker;
   Popup = rl.Popup;
   Tooltip = rl.Tooltip;
+}
+
+// 지역별 사진 프리뷰 캐시 (탭 생명주기 동안 유지). popup 이 열릴 때마다 재호출하지 않는다.
+const photoCache = new Map();
+
+function RegionPhotoMini({ areaCode }) {
+  const [photos, setPhotos] = useState(() => photoCache.get(areaCode) || null);
+  const fetched = useRef(false);
+
+  useEffect(() => {
+    if (photos != null) return;
+    if (fetched.current) return;
+    fetched.current = true;
+    (async () => {
+      try {
+        const res = await axios.get(
+          `/api/v1/cine-trip/photos?areaCode=${encodeURIComponent(areaCode)}&limit=3`
+        );
+        const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+        photoCache.set(areaCode, list);
+        setPhotos(list);
+      } catch {
+        photoCache.set(areaCode, []);
+        setPhotos([]);
+      }
+    })();
+  }, [areaCode, photos]);
+
+  if (photos == null) {
+    return (
+      <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            style={{
+              flex: "1 1 0",
+              height: 44,
+              borderRadius: 4,
+              background: "linear-gradient(90deg, #eee 0%, #f6f6f6 50%, #eee 100%)",
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+  if (photos.length === 0) return null;
+  return (
+    <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+      {photos.slice(0, 3).map((p, idx) => (
+        <a
+          key={p.contentId || idx}
+          href={`/cine-trip?area=${encodeURIComponent(areaCode)}`}
+          title={`${p.title || ""}${p.filmSite ? ` · ${p.filmSite}` : ""}`}
+          style={{
+            flex: "1 1 0",
+            height: 44,
+            borderRadius: 4,
+            overflow: "hidden",
+            display: "block",
+            background: "#111",
+          }}
+        >
+          <img
+            src={p.thumbnailUrl || p.imageUrl}
+            alt={p.title || "관광 사진"}
+            loading="lazy"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            onError={(e) => {
+              e.target.style.display = "none";
+            }}
+          />
+        </a>
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -114,6 +189,7 @@ export default function CultureMapLayer({ layer = "stores" }) {
                   {p.searchVolume != null && (
                     <div>{t("cultureMap.regionSearch")}: {p.searchVolume.toLocaleString()}</div>
                   )}
+                  <RegionPhotoMini areaCode={p.areaCode} />
                 </div>
               </Popup>
             )}
