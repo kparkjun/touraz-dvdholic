@@ -16,12 +16,18 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
     hibernate:
-      ddl-auto: validate
+      # 기본값은 validate (로컬 dev 안전성 유지).
+      # 운영(Heroku)에서는 JPA_DDL_AUTO=none 로 override 해서 매 기동 INFORMATION_SCHEMA 조회(엔티티 수 만큼 쿼리) 제거.
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     generate-ddl: false
     open-in-view: false
-    show-sql: true
+    # 운영(Heroku)에서는 SHOW_SQL=false 로 override 해서 로그 볼륨 절감.
+    show-sql: ${SHOW_SQL:true}
   flyway:
     locations: classpath:flyway
     baseline-on-migrate: true
     baseline-version: 1
-    enabled: true
+    # 기본값은 true (로컬 dev 는 web 기동 시 migrate 수행).
+    # 운영(Heroku)에서는 FLYWAY_ENABLED_ON_START=false 로 override 해서 web dyno 재기동 시 Flyway 재검증 쿼리 제거.
+    # (release phase 에서 이미 MigrateApplication 이 Flyway 를 실행함 — Procfile 참조)
+    enabled: ${FLYWAY_ENABLED_ON_START:true}
