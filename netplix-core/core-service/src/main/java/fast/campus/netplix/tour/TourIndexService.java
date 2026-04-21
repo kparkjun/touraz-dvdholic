@@ -2,7 +2,9 @@ package fast.campus.netplix.tour;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -18,6 +20,11 @@ public class TourIndexService implements TourIndexUseCase {
     private final TourIndexRepositoryPort tourIndexRepositoryPort;
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "tourIndex:latestPerRegion", allEntries = true),
+            @CacheEvict(value = "tourIndex:topSearchVolume", allEntries = true),
+            @CacheEvict(value = "cineTripCuration", allEntries = true)
+    })
     public int syncFromApi(LocalDate baseDate) {
         if (!visitKoreaDataLabPort.isConfigured()) {
             log.warn("[TOUR-INDEX] VisitKorea 서비스키 미설정 - sync 건너뜀");
