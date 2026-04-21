@@ -25,11 +25,12 @@ import java.util.Map;
  * - serviceKey 미설정 시 {@link #isConfigured()} 가 false 를 반환하며 배치는 no-op.
  *
  * 확인된 오퍼레이션 (Base: DataLabService)
- *   - metcoRegnVisitrDDList : 광역 지자체 일별 방문자수 (필수: startYmd, endYmd)
- *   - locgoRegnVisitrDDList : 기초 지자체 일별 방문자수 (필수: startYmd, endYmd)
- * 미확인 (Base URL TBD — 승인됐으나 경로 미수신)
- *   - areaTarSvcDemList     : 관광서비스 수요
- *   - areaCulResDemList     : 문화자원 수요
+ *   - metcoRegnVisitrDDList : 광역 지자체 일별 방문자수 (필수: startYmd, endYmd) — 활성
+ *   - locgoRegnVisitrDDList : 기초 지자체 일별 방문자수 (필수: startYmd, endYmd) — 비활성
+ * 참고: 아래 오퍼레이션은 Base URL 확인됐으나 현 시점 데이터셋 적재가 끝나지 않아(totalCount=0) 통합 보류.
+ *   - AreaTarResDemService/{areaTarSvcDemList, areaCulResDemList}  : 지역별 관광 자원 수요
+ *   - AreaTarDivService/{areaIntlDivList, …}                       : 지역별 관광 다양성
+ *   - TatsCnctrRateService                                         : 관광지 집중률 방문자 추이 예측 (op 미확정)
  */
 @Slf4j
 @Component
@@ -40,6 +41,38 @@ public class VisitKoreaDataLabHttpClient implements VisitKoreaDataLabPort {
 
     // 외지인(관광객) 구분 코드. 1=현지인, 2=외지인, 3=외국인. "진짜 관광객" 신호로 2 만 사용.
     private static final String TOURIST_DIV_OUTSIDER = "2";
+
+    /**
+     * KTO DataLab 이 내려주는 areaCode 는 법정동 광역코드(lDongRegnCd / 앞 2자리) 이다.
+     * 반면 CineTrip 매핑 테이블(movie_region_mappings.area_code) 과 프론트 필터는
+     * KorService2 areaCode(1~8, 31~39) 를 사용한다. 서로 다른 두 체계로 인해 조인이
+     * 실패하면 {@code regionIndices} 가 항상 빈 배열로 응답돼 큐레이션 품질이 떨어진다.
+     *
+     * <p>아래 표는 <code>lDongRegnCd → KorService2 areaCode</code> 방향. 강원/전북은
+     * 구 코드(42, 45)와 특별자치도 코드(51, 52) 모두 대응한다. 누락 시 원본 코드를
+     * 그대로 저장 (후속 시각화에서 식별 가능).
+     */
+    private static final Map<String, String> LDONG_TO_AREA_CODE = Map.ofEntries(
+            Map.entry("11", "1"),   // 서울
+            Map.entry("26", "6"),   // 부산
+            Map.entry("27", "4"),   // 대구
+            Map.entry("28", "2"),   // 인천
+            Map.entry("29", "5"),   // 광주
+            Map.entry("30", "3"),   // 대전
+            Map.entry("31", "7"),   // 울산
+            Map.entry("36", "8"),   // 세종
+            Map.entry("41", "31"),  // 경기
+            Map.entry("42", "32"),  // 강원 (구 코드)
+            Map.entry("43", "33"),  // 충북
+            Map.entry("44", "34"),  // 충남
+            Map.entry("45", "37"),  // 전북 (구 코드)
+            Map.entry("46", "38"),  // 전남
+            Map.entry("47", "35"),  // 경북
+            Map.entry("48", "36"),  // 경남
+            Map.entry("50", "39"),  // 제주
+            Map.entry("51", "32"),  // 강원특별자치도
+            Map.entry("52", "37")   // 전북특별자치도
+    );
 
     private final HttpClient httpClient;
 
@@ -157,9 +190,13 @@ public class VisitKoreaDataLabHttpClient implements VisitKoreaDataLabPort {
                                       String operation) {
         switch (operation) {
             case "METCO_VISITORS", "LOCGO_VISITORS" -> {
-                // touDivCd=2(외지인) 행만 반영해 "관광객 규모" 프록시로 사용. searchVolume 필드에 저장.
+                // touDivCd=2(외지인) 행만 반영해 "관광객 규모" 프록시로 사용.
+                // searchVolume(원시 방문자수) 과 tourDemandIdx(수요지수 프록시) 양쪽에 채워
+                // CineTripService / 프론트 시각화 모두에서 비어있지 않도록 한다.
                 if (TOURIST_DIV_OUTSIDER.equals(item.getTouristDivCode()) && item.getTouristCount() != null) {
-                    builder.searchVolume(item.getTouristCount().intValue());
+                    int visitors = item.getTouristCount().intValue();
+                    builder.searchVolume(visitors);
+                    builder.tourDemandIdx((double) visitors);
                 }
             }
             case "TOUR_SERVICE_DEMAND" -> {
@@ -174,8 +211,21 @@ public class VisitKoreaDataLabHttpClient implements VisitKoreaDataLabPort {
     }
 
     private static String regionKey(VisitKoreaDataLabResponse.Item item) {
-        if (item.getSignguCode() != null && !item.getSignguCode().isBlank()) return item.getSignguCode();
-        if (item.getAreaCode() != null && !item.getAreaCode().isBlank()) return item.getAreaCode();
+        // signguCode(5자리 기초지자체) 는 광역 기준 조인과 맞지 않아 현재 단계에서는 사용하지 않는다.
+        // locgoRegnVisitrDDList 를 재활성화할 때는 앞 2자리 추출 후 광역으로 집계하는 로직 추가 필요.
+        if (item.getAreaCode() != null && !item.getAreaCode().isBlank()) {
+            String raw = item.getAreaCode().trim();
+            // KTO → KorService2 변환. 매핑 없는 코드는 원본 유지 (예: 향후 새 지역 추가 대비).
+            return LDONG_TO_AREA_CODE.getOrDefault(raw, raw);
+        }
+        if (item.getSignguCode() != null && !item.getSignguCode().isBlank()) {
+            String sig = item.getSignguCode().trim();
+            if (sig.length() >= 2) {
+                String prefix = sig.substring(0, 2);
+                return LDONG_TO_AREA_CODE.getOrDefault(prefix, prefix);
+            }
+            return sig;
+        }
         return null;
     }
 

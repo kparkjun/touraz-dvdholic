@@ -19,26 +19,48 @@ tmdb:
     movie-reviews: https://api.themoviedb.org/3/movie/{movie_id}/reviews?api_key=${TMDB_API_KEY:}&language=ko-KR&page=1
     trending-week: https://api.themoviedb.org/3/trending/movie/week?api_key=${TMDB_API_KEY:}
 
-# 한국관광공사 데이터랩
-# 공공데이터포털:
-#   https://www.data.go.kr/data/15101972/openapi.do - 관광빅데이터(방문자수) - DataLabService 확인됨
-#   https://www.data.go.kr/data/15152138/openapi.do - 지역별관광자원수요(areaTarSvcDemList,areaCulResDemList) - Base URL 미확인 (확정되면 area-demand-base-url 채우기)
-# 필수 파라미터 (방문자수): serviceKey, MobileOS=ETC, MobileApp, startYmd, endYmd, numOfRows, pageNo
-# 키 네이밍은 기존 @Value 호환성 유지. 실제 의미는 코드 주석 참고.
+# 한국관광공사 데이터랩 & 파생 API (2026-04 기준 Base URL 전부 확인 완료)
+# 공공데이터포털 등록 경로:
+#   15101972 관광빅데이터 정보서비스_GW   → DataLabService            (활성: 방문자수 광역)
+#   15152138 지역별 관광 자원 수요        → AreaTarResDemService       (확인, 데이터셋 적재 대기중 — totalCount=0)
+#   15151365 지역별 관광 다양성           → AreaTarDivService          (Base 확인, 일부 operation 미확정)
+#   15128555 관광지 집중률 방문자 추이 예측 → TatsCnctrRateService     (Base 확인, operation 파라미터 미확정)
+#   15145706 관광공모전(사진) 수상작 정보  → PhokoAwrdService          (활성: 사진 섹션)
+# 필수 파라미터 규약
+#   - DataLabService 계열: serviceKey, MobileOS=ETC, MobileApp, startYmd, endYmd, numOfRows, pageNo
+#   - AreaTar* 계열:       serviceKey, MobileOS, MobileApp, baseYm(YYYYMM), areaCd(광역 법정동 2자리)
+# TourIndex 조인 전제: DataLabHttpClient 가 내부에서 lDongRegnCd(11,26,...) → KorService2 areaCode(1~8,31~39) 로
+# 변환 후 저장. 이 규약을 깨는 신규 오퍼레이션은 반드시 동일 변환을 거쳐야 한다.
 visitkorea:
   auth:
     service-key: ${VISITKOREA_SERVICE_KEY:}
   api:
     base-url: https://apis.data.go.kr/B551011/DataLabService
-    # 광역 지자체 방문자수 (metcoRegnVisitrDDList) - 확인됨, 활성화
+    # 광역 지자체 방문자수 (metcoRegnVisitrDDList) - 활성. 응답의 areaCode 는 11,26,... 이며
+    # 클라이언트가 KorService2 체계로 변환한 뒤 tour_index_snapshots 에 upsert 한다.
     tour-demand-index: ${visitkorea.api.base-url}/metcoRegnVisitrDDList
-    # 기초 지자체 방문자수 (locgoRegnVisitrDDList) - 확인됨. signguCode(5자리) 기반이라
-    # 현재 광역(1~8,31~39) 기준 TourIndex 키와 충돌하므로 일단 비활성. 후속 PR에서 집계 추가 예정.
+    # 기초 지자체 방문자수 (locgoRegnVisitrDDList) - 현재 비활성.
+    # 활성 시 signguCode(5자리) 를 광역 2자리로 집계 후 저장해야 함 (regionKey 로직 이미 지원).
     tour-competitiveness: ""
-    # 지역 관광서비스/문화자원 수요 - Base URL 미확인. 빈 값 유지 시 자동 스킵.
-    # 확정되면 ${visitkorea.api.area-demand-base}/areaXxxxList 형태로 활성화
+    # 지역 관광 서비스/문화자원 수요 — 엔드포인트 연결 확인. 단, 2026-04 시점 totalCount=0 으로
+    # 지속 응답되어 KTO 측 데이터 적재 전. 적재 확인 시 아래 2개 URL 을 채워 활성화.
+    # ${visitkorea.api.area-demand-base}/areaTarSvcDemList, .../areaCulResDemList
     cultural-resource-demand: ""
     tour-search-volume: ""
+  # 지역별 관광 자원 수요 (AreaTarResDemService) - 활성화 대기용
+  area-demand:
+    base-url: https://apis.data.go.kr/B551011/AreaTarResDemService
+    service-demand: ${visitkorea.area-demand.base-url}/areaTarSvcDemList
+    cultural-demand: ${visitkorea.area-demand.base-url}/areaCulResDemList
+  # 지역별 관광 다양성 (AreaTarDivService) - 확인된 operation 1개 (areaIntlDivList).
+  # 관광객/관광소비 다양성 operation 은 가이드 문서 확보 시 채울 것.
+  diversity:
+    base-url: https://apis.data.go.kr/B551011/AreaTarDivService
+    intl-diversity: ${visitkorea.diversity.base-url}/areaIntlDivList
+  # 관광지 집중률 방문자 추이 예측 (TatsCnctrRateService) - operation 명 미확정.
+  # 가이드(TourAPI_Guide_(관광지집중률방문자추이예측정보)v4.0.zip) 확보 시 활성화.
+  concentration:
+    base-url: https://apis.data.go.kr/B551011/TatsCnctrRateService
   # 매 일 호출을 상한하기 위한 일일 배치 기준 값
   batch:
     default-period-days: 7
