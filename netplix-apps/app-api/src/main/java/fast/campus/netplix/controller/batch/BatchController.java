@@ -1,8 +1,11 @@
 package fast.campus.netplix.controller.batch;
 
 import fast.campus.netplix.cinetrip.AutoTagCineTripMappingUseCase;
+import fast.campus.netplix.cinetrip.RecomputeCineTripScoreUseCase;
 import fast.campus.netplix.controller.NetplixApiResponse;
 import fast.campus.netplix.scheduler.MovieUpdateScheduler;
+import fast.campus.netplix.tour.ComputeTrendingRegionsUseCase;
+import fast.campus.netplix.tour.TourIndexUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +20,7 @@ import fast.campus.netplix.notification.Notification;
 import fast.campus.netplix.notification.NotificationUseCase;
 import fast.campus.netplix.user.SearchUserPort;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -36,6 +40,9 @@ public class BatchController {
     private final PersistenceMoviePort persistenceMoviePort;
     private final OwnerRecommendUseCase ownerRecommendUseCase;
     private final AutoTagCineTripMappingUseCase autoTagCineTripMappingUseCase;
+    private final TourIndexUseCase tourIndexUseCase;
+    private final ComputeTrendingRegionsUseCase computeTrendingRegionsUseCase;
+    private final RecomputeCineTripScoreUseCase recomputeCineTripScoreUseCase;
 
     /**
      * 배치 스케줄·마지막 실행 시각 확인 (매일 새벽 배치가 도는지 검증용)
@@ -202,6 +209,76 @@ public class BatchController {
         } catch (Exception e) {
             log.error("자동 태깅 배치 실행 실패: {}", e.getMessage(), e);
             return NetplixApiResponse.ok("자동 태깅 배치 실행 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 관광공사 데이터랩 API 에서 지자체별 지표를 당겨와 tour_index_snapshots 에 upsert.
+     * 자동 스케줄은 app-batch SyncTourIndexBatch 가 매일 03:30 KST 에 실행.
+     */
+    @PostMapping("/tour/sync")
+    public NetplixApiResponse<String> runTourSync() {
+        log.info("Tour Sync 수동 실행 요청");
+        try {
+            LocalDate kstBase = LocalDate.now(ZoneId.of("Asia/Seoul"));
+            CompletableFuture.runAsync(() -> {
+                try {
+                    int saved = tourIndexUseCase.syncFromApi(kstBase);
+                    log.info("[TOUR-SYNC-MANUAL] 완료 - baseDate={}, saved={}", kstBase, saved);
+                } catch (Exception e) {
+                    log.error("[TOUR-SYNC-MANUAL] 실패: {}", e.getMessage(), e);
+                }
+            });
+            return NetplixApiResponse.ok("Tour 지표 동기화를 시작했습니다. baseDate=" + kstBase + ". 완료 후 /api/v1/tour/regions 로 확인하세요.");
+        } catch (Exception e) {
+            log.error("Tour Sync 실행 실패: {}", e.getMessage(), e);
+            return NetplixApiResponse.ok("Tour Sync 실행 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * trending_regions_cache 3 period(today/week/month) 재계산.
+     * 자동 스케줄은 app-batch ComputeTrendingRegionsBatch 가 매일 04:00 KST 에 실행.
+     */
+    @PostMapping("/tour/trending")
+    public NetplixApiResponse<String> runTrendingRecompute() {
+        log.info("Trending Regions 재계산 수동 실행 요청");
+        try {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    int saved = computeTrendingRegionsUseCase.recomputeAll();
+                    log.info("[TRENDING-MANUAL] 완료 - saved={}", saved);
+                } catch (Exception e) {
+                    log.error("[TRENDING-MANUAL] 실패: {}", e.getMessage(), e);
+                }
+            });
+            return NetplixApiResponse.ok("Trending 재계산을 시작했습니다. 완료 후 /api/v1/tour/trending-regions?period=today 로 확인하세요.");
+        } catch (Exception e) {
+            log.error("Trending 재계산 실행 실패: {}", e.getMessage(), e);
+            return NetplixApiResponse.ok("Trending 재계산 실행 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * movie_region_mappings 의 trending_score 재계산.
+     * 자동 스케줄은 app-batch RecomputeCineTripScoreBatch 가 매일 04:30 KST 에 실행.
+     */
+    @PostMapping("/cine-trip/score")
+    public NetplixApiResponse<String> runCineTripScoreRecompute() {
+        log.info("CineTrip Score 재계산 수동 실행 요청");
+        try {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    int saved = recomputeCineTripScoreUseCase.recomputeAll();
+                    log.info("[CINETRIP-SCORE-MANUAL] 완료 - saved={}", saved);
+                } catch (Exception e) {
+                    log.error("[CINETRIP-SCORE-MANUAL] 실패: {}", e.getMessage(), e);
+                }
+            });
+            return NetplixApiResponse.ok("CineTrip Score 재계산을 시작했습니다. 완료 후 /api/v1/cine-trip?limit=5 로 확인하세요.");
+        } catch (Exception e) {
+            log.error("CineTrip Score 재계산 실행 실패: {}", e.getMessage(), e);
+            return NetplixApiResponse.ok("CineTrip Score 재계산 실행 실패: " + e.getMessage());
         }
     }
 }
