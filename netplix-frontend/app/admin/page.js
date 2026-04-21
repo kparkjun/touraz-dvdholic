@@ -543,7 +543,7 @@ function Dashboard({ onLogout }) {
                   {tab === "insights" && t("admin.cultureVsTour", "문화×관광")}
                   {tab === "pending" && (
                     <>
-                      {t("admin.aiMappingReview", "AI 매핑 승인")}
+                      {t("admin.aiMappingReview", "AI 추천 영화·지역 확인")}
                       {pendingMappingsTotal > 0 && (
                         <span
                           style={{
@@ -930,12 +930,12 @@ function PendingMappingsPanel({ rows, total, loading, onApprove, onReject, onRef
       >
         <div>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#9a3412" }}>
-            {t("admin.aiMappingReview", "AI 매핑 승인")}
+            {t("admin.aiMappingReview", "AI 추천 영화·지역 확인")}
           </div>
           <div style={{ fontSize: 12, color: "#7c2d12", marginTop: 2 }}>
             {t(
               "admin.aiMappingReviewHint",
-              "AutoTagCineTripMappingBatch 가 저신뢰도(≤2) 로 분류한 영화-지역 매핑. 승인 시 movie_region_mappings 에 즉시 반영됩니다."
+              "AI가 영화와 지역을 자동으로 연결했는데, 확신이 낮은 항목들만 여기 모아뒀어요. 맞으면 '승인'을, 아니면 '반려'를 눌러주세요. 승인한 항목은 바로 CineTrip 페이지에 보여집니다."
             )}
           </div>
         </div>
