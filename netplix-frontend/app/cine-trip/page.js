@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { MapPin, Film, TrendingUp, Sparkles, Share2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MapPin, Film, TrendingUp, Sparkles, Share2, X, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import axios from '@/lib/axiosConfig';
 import { shareContent, shareResultMessage } from '@/lib/shareUtils';
 import PhotoGalleryStrip from '@/components/PhotoGalleryStrip';
@@ -95,12 +96,19 @@ function EmptyState() {
 function MovieCard({ item, index }) {
   const [isHovered, setIsHovered] = useState(false);
   const [shareToast, setShareToast] = useState('');
+  const [courseOpen, setCourseOpen] = useState(false);
   const movie = item.movie || {};
   const mappings = item.mappings || [];
   const regionIndices = item.regionIndices || [];
   const score = item.trendingScore || 0;
   const topRegionIndex = regionIndices[0];
   const primaryArea = mappings[0]?.areaCode || topRegionIndex?.areaCode;
+
+  const openCourse = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    setCourseOpen(true);
+  };
 
   const handleShare = async (e) => {
     e.preventDefault();
@@ -312,18 +320,25 @@ function MovieCard({ item, index }) {
 
         <div style={{ display: 'flex', gap: 8 }}>
           <button
+            type="button"
+            onClick={openCourse}
+            disabled={mappings.length === 0}
+            aria-label="여행 코스 보기"
             style={{
               flex: 1,
               padding: 12,
-              background: isHovered
-                ? 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)'
-                : 'rgba(168, 85, 247, 0.2)',
+              background: mappings.length === 0
+                ? 'rgba(168, 85, 247, 0.08)'
+                : isHovered
+                  ? 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)'
+                  : 'rgba(168, 85, 247, 0.2)',
               border: '1px solid rgba(168, 85, 247, 0.5)',
               borderRadius: 12,
               color: '#fff',
               fontSize: 14,
               fontWeight: 600,
-              cursor: 'pointer',
+              cursor: mappings.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: mappings.length === 0 ? 0.5 : 1,
               transition: 'all 0.3s ease',
               display: 'flex',
               alignItems: 'center',
@@ -361,6 +376,331 @@ function MovieCard({ item, index }) {
           </p>
         )}
       </div>
+
+      <AnimatePresence>
+        {courseOpen && (
+          <TravelCourseModal
+            movie={movie}
+            mappings={mappings}
+            regionIndices={regionIndices}
+            score={score}
+            onClose={() => setCourseOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function TravelCourseModal({ movie, mappings, regionIndices, score, onClose }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', handler);
+    };
+  }, [onClose]);
+
+  const regionMap = new Map();
+  for (const m of mappings) {
+    if (!m?.areaCode) continue;
+    if (!regionMap.has(m.areaCode)) regionMap.set(m.areaCode, m);
+  }
+  const stops = Array.from(regionMap.values());
+  const indexByArea = new Map(regionIndices.map((r) => [r.areaCode, r]));
+
+  const openMovieDetail = () => {
+    if (!movie?.movieName) return;
+    router.push(
+      `/dashboard/images?movieName=${encodeURIComponent(movie.movieName)}&contentType=movie`
+    );
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        background: 'rgba(0,0,0,0.78)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+      }}
+    >
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        initial={{ opacity: 0, y: 30, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 20, scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 960,
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          borderRadius: 20,
+          background: 'linear-gradient(180deg, #141419 0%, #0a0a0f 100%)',
+          border: '1px solid rgba(168, 85, 247, 0.35)',
+          boxShadow: '0 25px 60px rgba(168,85,247,0.25), 0 0 0 1px rgba(255,255,255,0.04)',
+          position: 'relative',
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="닫기"
+          style={{
+            position: 'absolute',
+            top: 14,
+            right: 14,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'rgba(0,0,0,0.45)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 2,
+          }}
+        >
+          <X size={18} />
+        </button>
+
+        <div
+          style={{
+            display: 'flex',
+            gap: 20,
+            padding: '28px 28px 20px',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          <img
+            src={posterSrc(movie.posterPath)}
+            alt={movie.movieName || 'poster'}
+            style={{
+              width: 120,
+              height: 170,
+              objectFit: 'cover',
+              borderRadius: 12,
+              flexShrink: 0,
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+            onError={(e) => {
+              e.target.src = 'https://via.placeholder.com/240x340/1a1a1a/666?text=No+Image';
+            }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '4px 10px',
+                borderRadius: 12,
+                background: 'rgba(168,85,247,0.15)',
+                border: '1px solid rgba(168,85,247,0.35)',
+                fontSize: 11,
+                fontWeight: 700,
+                color: '#c4b5fd',
+                marginBottom: 10,
+              }}
+            >
+              <Sparkles size={12} /> 이 영화로 떠나는 여행
+            </div>
+            <h2
+              style={{
+                fontSize: 26,
+                fontWeight: 800,
+                color: '#fff',
+                margin: 0,
+                marginBottom: 6,
+                wordBreak: 'keep-all',
+              }}
+            >
+              {movie.movieName || '제목 미상'}
+            </h2>
+            {(movie.tagline || movie.genre) && (
+              <p style={{ color: '#a0a0a0', fontSize: 13, margin: '0 0 14px' }}>
+                {movie.tagline || movie.genre}
+              </p>
+            )}
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+              {stops.map((m, idx) => (
+                <span
+                  key={m.areaCode}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 10px',
+                    borderRadius: 20,
+                    background: MAPPING_TYPE_COLORS[m.mappingType] || '#333',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#fff',
+                  }}
+                >
+                  <MapPin size={12} />
+                  Stop {idx + 1} · {m.regionName || m.areaCode}
+                  <span
+                    style={{
+                      padding: '2px 6px',
+                      borderRadius: 8,
+                      background: 'rgba(255,255,255,0.22)',
+                      fontSize: 10,
+                    }}
+                  >
+                    {MAPPING_TYPE_LABEL[m.mappingType] || m.mappingType}
+                  </span>
+                </span>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
+              <span style={{ fontSize: 12, color: '#888' }}>
+                <TrendingUp size={12} style={{ verticalAlign: -2, color: '#a855f7' }} /> 트렌딩{' '}
+                <b style={{ color: '#fff' }}>{score.toFixed(1)}</b>
+              </span>
+              <button
+                type="button"
+                onClick={openMovieDetail}
+                style={{
+                  marginLeft: 'auto',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 12px',
+                  borderRadius: 10,
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'rgba(255,255,255,0.06)',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                영화 상세로 <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: '20px 28px 32px' }}>
+          {stops.length === 0 ? (
+            <div style={{ color: '#888', fontSize: 14, textAlign: 'center', padding: '40px 0' }}>
+              아직 연결된 지역 정보가 없어요. 다른 작품을 골라보세요.
+            </div>
+          ) : (
+            stops.map((m, idx) => {
+              const idxRow = indexByArea.get(m.areaCode);
+              return (
+                <section
+                  key={m.areaCode}
+                  style={{
+                    padding: '18px 0',
+                    borderTop: idx === 0 ? 'none' : '1px dashed rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      marginBottom: 10,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 13,
+                        background: 'linear-gradient(135deg,#a855f7,#ec4899)',
+                        color: '#fff',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {idx + 1}
+                    </span>
+                    <h3 style={{ fontSize: 17, fontWeight: 700, color: '#fff', margin: 0 }}>
+                      {m.regionName || m.areaCode}
+                    </h3>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        padding: '3px 8px',
+                        borderRadius: 10,
+                        background: MAPPING_TYPE_COLORS[m.mappingType] || '#333',
+                        color: '#fff',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {MAPPING_TYPE_LABEL[m.mappingType] || m.mappingType}
+                    </span>
+                    {idxRow && (
+                      <span style={{ fontSize: 12, color: '#9ca3af', marginLeft: 'auto' }}>
+                        관광수요 <b style={{ color: '#fff' }}>{(idxRow.tourDemandIdx ?? 0).toFixed(1)}</b>
+                        {' · '}검색 <b style={{ color: '#fff' }}>{idxRow.searchVolume ?? 0}</b>
+                      </span>
+                    )}
+                  </div>
+                  {m.evidence && (
+                    <p
+                      style={{
+                        fontSize: 13,
+                        color: '#cbd5e1',
+                        background: 'rgba(168,85,247,0.07)',
+                        border: '1px solid rgba(168,85,247,0.18)',
+                        borderRadius: 10,
+                        padding: '10px 12px',
+                        margin: '0 0 10px',
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {m.evidence}
+                    </p>
+                  )}
+
+                  <ConcentrationForecastStrip
+                    areaCode={m.areaCode}
+                    regionLabel={m.regionName || ''}
+                  />
+
+                  <PhotoGalleryStrip
+                    areaCode={m.areaCode}
+                    limit={8}
+                    title={`${m.regionName || m.areaCode} 관광공모전 수상작`}
+                  />
+                </section>
+              );
+            })
+          )}
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
