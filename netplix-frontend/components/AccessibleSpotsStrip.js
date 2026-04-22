@@ -14,7 +14,7 @@ import {
   X,
   ExternalLink,
   Navigation,
-  Route,
+  Landmark,
 } from 'lucide-react';
 import axios from '@/lib/axiosConfig';
 
@@ -34,11 +34,16 @@ import axios from '@/lib/axiosConfig';
  */
 const BUCKET_META = {
   attractions: { label: '관광지', icon: MapPin, color: '#10b981' },
-  courses: { label: '여행코스', icon: Route, color: '#22d3ee' },
+  cultural: { label: '문화시설', icon: Landmark, color: '#a855f7' },
   restaurants: { label: '음식점', icon: UtensilsCrossed, color: '#f97316' },
   accommodations: { label: '숙박', icon: Hotel, color: '#6366f1' },
 };
-const BUCKET_ORDER = ['attractions', 'courses', 'restaurants', 'accommodations'];
+const BUCKET_ORDER = [
+  'attractions',
+  'cultural',
+  'restaurants',
+  'accommodations',
+];
 
 export default function AccessibleSpotsStrip({ areaCode, regionLabel = '' }) {
   const [buckets, setBuckets] = useState({});
@@ -68,6 +73,17 @@ export default function AccessibleSpotsStrip({ areaCode, regionLabel = '' }) {
       alive = false;
     };
   }, [areaCode]);
+
+  // 로드 직후 활성 탭이 비어있으면 첫 번째로 채워진 탭으로 자동 전환.
+  // (early return 앞에 둬야 React hook 순서 규칙 준수)
+  useEffect(() => {
+    if (loading) return;
+    if ((buckets?.[activeBucket] || []).length > 0) return;
+    const firstFilled = BUCKET_ORDER.find((k) => (buckets?.[k] || []).length > 0);
+    if (firstFilled && firstFilled !== activeBucket) {
+      setActiveBucket(firstFilled);
+    }
+  }, [loading, buckets, activeBucket]);
 
   const totalCount = BUCKET_ORDER.reduce(
     (acc, k) => acc + ((buckets?.[k] || []).length || 0),

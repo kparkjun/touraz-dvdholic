@@ -1296,7 +1296,6 @@ function PendingMappingsPanel({ rows, total, loading, error, onApprove, onReject
 const ACCESSIBILITY_TYPES = [
   { id: "12", label: "관광지" },
   { id: "14", label: "문화시설" },
-  { id: "25", label: "여행코스" },
   { id: "32", label: "숙박" },
   { id: "39", label: "음식점" },
 ];

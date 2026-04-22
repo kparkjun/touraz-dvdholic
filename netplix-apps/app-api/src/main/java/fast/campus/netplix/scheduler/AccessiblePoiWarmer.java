@@ -31,7 +31,8 @@ public class AccessiblePoiWarmer {
             "1", "2", "3", "4", "5", "6", "7", "8",
             "31", "32", "33", "34", "35", "36", "37", "38", "39"
     );
-    private static final List<String> CONTENT_TYPES = List.of("12", "14", "25", "32", "39");
+    // 여행코스(25) 는 KorWithService2 에 전 지역 0건이라 워밍 대상에서 제외 (불필요한 KTO 호출 방지)
+    private static final List<String> CONTENT_TYPES = List.of("12", "14", "32", "39");
 
     private final GetAccessiblePoiUseCase useCase;
 

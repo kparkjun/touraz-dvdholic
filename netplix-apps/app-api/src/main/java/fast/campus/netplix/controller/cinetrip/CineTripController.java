@@ -33,12 +33,22 @@ public class CineTripController {
     private final GetAccessiblePoiUseCase accessiblePoiUseCase;
 
     /** CineTrip 상세 모달에서 "이 지역 함께 가볼만한 곳" 섹션에 쓰는 키. */
-    private static final Map<String, String> ACCESSIBLE_BUCKETS = Map.of(
-            "attractions", "12",     // 관광지
-            "courses", "25",         // 여행코스
-            "restaurants", "39",     // 음식점
-            "accommodations", "32"   // 숙박
-    );
+    /**
+     * 탭 표시 순서를 보존하기 위해 {@link java.util.LinkedHashMap} 로 선언.
+     *
+     * <p>여행코스(contentTypeId=25) 는 KTO 무장애 API (KorWithService2) 에
+     * 전국적으로 실제 데이터가 0 건이라 버킷에서 제외한다. 공공데이터포털의 일반
+     * KorService2 승인이 추가되면 자체 큐레이션 방식으로 재도입을 검토.
+     */
+    private static final Map<String, String> ACCESSIBLE_BUCKETS;
+    static {
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put("attractions", "12");     // 관광지
+        m.put("cultural", "14");        // 문화시설 (박물관/미술관/공연장)
+        m.put("restaurants", "39");     // 음식점
+        m.put("accommodations", "32");  // 숙박
+        ACCESSIBLE_BUCKETS = java.util.Collections.unmodifiableMap(m);
+    }
 
     @GetMapping("/curate")
     public NetplixApiResponse<List<CineTripResponse>> curate(
