@@ -34,9 +34,10 @@ public class CineTripController {
 
     /** CineTrip 상세 모달에서 "이 지역 함께 가볼만한 곳" 섹션에 쓰는 키. */
     private static final Map<String, String> ACCESSIBLE_BUCKETS = Map.of(
-            "attractions", "12", // 관광지
-            "restaurants", "39", // 음식점
-            "accommodations", "32" // 숙박
+            "attractions", "12",     // 관광지
+            "courses", "25",         // 여행코스
+            "restaurants", "39",     // 음식점
+            "accommodations", "32"   // 숙박
     );
 
     @GetMapping("/curate")

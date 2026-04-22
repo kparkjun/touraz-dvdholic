@@ -14,6 +14,7 @@ import {
   X,
   ExternalLink,
   Navigation,
+  Route,
 } from 'lucide-react';
 import axios from '@/lib/axiosConfig';
 
@@ -33,10 +34,11 @@ import axios from '@/lib/axiosConfig';
  */
 const BUCKET_META = {
   attractions: { label: '관광지', icon: MapPin, color: '#10b981' },
+  courses: { label: '여행코스', icon: Route, color: '#22d3ee' },
   restaurants: { label: '음식점', icon: UtensilsCrossed, color: '#f97316' },
   accommodations: { label: '숙박', icon: Hotel, color: '#6366f1' },
 };
-const BUCKET_ORDER = ['attractions', 'restaurants', 'accommodations'];
+const BUCKET_ORDER = ['attractions', 'courses', 'restaurants', 'accommodations'];
 
 export default function AccessibleSpotsStrip({ areaCode, regionLabel = '' }) {
   const [buckets, setBuckets] = useState({});
