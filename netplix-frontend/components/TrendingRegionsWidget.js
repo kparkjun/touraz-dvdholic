@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, TrendingUp } from 'lucide-react';
+import { Sparkles, TrendingUp, PawPrint } from 'lucide-react';
 import Link from 'next/link';
 import axios from '@/lib/axiosConfig';
 
@@ -286,21 +286,51 @@ export default function TrendingRegionsWidget({ limit = 5, defaultPeriod = 'toda
         </motion.div>
       )}
 
-      <Link
-        href="/cine-trip"
+      <div
         style={{
           marginTop: 16,
-          display: 'inline-flex',
+          display: 'flex',
+          flexWrap: 'wrap',
           alignItems: 'center',
-          gap: 6,
-          fontSize: 13,
-          fontWeight: 600,
-          color: '#c4b5fd',
-          textDecoration: 'none',
+          justifyContent: 'space-between',
+          gap: 12,
         }}
       >
-        CineTrip 카드 전체 보기 →
-      </Link>
+        <Link
+          href="/cine-trip"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#c4b5fd',
+            textDecoration: 'none',
+          }}
+        >
+          <Sparkles size={14} />
+          CineTrip 카드 전체 보기 →
+        </Link>
+        <Link
+          href="/pet-travel"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#fbcfe8',
+            textDecoration: 'none',
+            background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.18) 0%, rgba(139, 92, 246, 0.18) 100%)',
+            border: '1px solid rgba(236, 72, 153, 0.35)',
+            borderRadius: 999,
+          }}
+        >
+          <PawPrint size={14} />
+          반려동물 여행 전체 보기 →
+        </Link>
+      </div>
     </div>
   );
 }
