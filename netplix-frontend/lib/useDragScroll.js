@@ -1,20 +1,33 @@
 "use client";
 import { useEffect } from "react";
 
+/**
+ * containerRef 하위의 가로 스크롤 레일에 "마우스 드래그/터치 스와이프"를 자동 바인딩.
+ *
+ * 대상 셀렉터:
+ *   .dashboard-scroll-row (legacy), .cinetrip-scroll-row, .js-drag-scroll
+ *
+ * 동작:
+ *  - 왼쪽 마우스 버튼 / 터치 / 펜 으로 좌우 드래그 → 관성 스크롤 포함
+ *  - 6px 이상 이동해야 드래그로 인식(→ 가벼운 클릭은 버튼/링크로 전달)
+ *  - pointerdown 에서 네이티브 이미지/링크 drag 즉시 차단
+ *  - 컨테이너의 dragstart 도 차단하여 브라우저 ghost drag 방지
+ *
+ * 동적 마운트 대응:
+ *  - MutationObserver 로 containerRef 하위에 새로 추가되는 레일도 즉시 바인딩
+ *    (예: 모달이 열리면서 mount 되는 PhotoGalleryStrip/AccessibleSpotsStrip)
+ */
+const SELECTOR = ".dashboard-scroll-row, .cinetrip-scroll-row, .js-drag-scroll";
+
 export default function useDragScrollAll(containerRef) {
   useEffect(() => {
-    const container = containerRef?.current ?? document;
+    const container = containerRef?.current ?? (typeof document !== "undefined" ? document : null);
     if (!container) return;
 
-    // 드래그 스크롤을 원하는 모든 영역은 아래 셀렉터 중 하나를 클래스로 사용.
-    // (dashboard 레거시 호환 + 일반 목적의 .js-drag-scroll 클래스도 지원)
-    const rows = container.querySelectorAll(
-      ".dashboard-scroll-row, .cinetrip-scroll-row, .js-drag-scroll"
-    );
     const cleanups = [];
 
-    rows.forEach((el) => {
-      if (el._dragBound) return;
+    const bindRow = (el) => {
+      if (!el || el._dragBound) return;
       el._dragBound = true;
 
       const s = {
@@ -47,13 +60,8 @@ export default function useDragScrollAll(containerRef) {
       };
 
       const onDown = (e) => {
-        // 왼쪽 마우스 버튼 또는 터치/펜 이벤트만 스크롤 드래그로 처리.
-        // (마우스의 경우 e.button === 0 이 왼쪽, 그 외(가운데/오른쪽)는 무시)
         if (e.pointerType === "mouse" && e.button !== 0) return;
 
-        // 이미지/버튼 내부에서 네이티브 drag 가 선행되어 스와이프가 씹히는 문제 방지.
-        // pointerdown 시점에서 기본 드래그/텍스트 선택을 차단.
-        // (click 이벤트 자체는 그대로 발생하므로 버튼/링크 클릭에는 영향 없음)
         if (e.cancelable) {
           try { e.preventDefault(); } catch {}
         }
@@ -69,18 +77,13 @@ export default function useDragScrollAll(containerRef) {
         s.pointerId = e.pointerId;
       };
 
-      // <img>/<a> 의 브라우저 기본 드래그(고스트 이미지/링크 URL)가 스크롤을 가로채지 못하게 차단.
-      const onDragStart = (e) => {
-        e.preventDefault();
-      };
-
       const onMove = (e) => {
         if (!s.isDown) return;
         const dx = e.clientX - s.startX;
 
         if (!s.dragging && Math.abs(dx) > 6) {
           s.dragging = true;
-          el.setPointerCapture(s.pointerId);
+          try { el.setPointerCapture(s.pointerId); } catch {}
           el.style.cursor = "grabbing";
         }
 
@@ -96,7 +99,7 @@ export default function useDragScrollAll(containerRef) {
         el.scrollLeft = s.scrollLeft - dx;
       };
 
-      const onUp = (e) => {
+      const onUp = () => {
         if (!s.isDown) return;
         const wasDragging = s.dragging;
         s.isDown = false;
@@ -121,10 +124,11 @@ export default function useDragScrollAll(containerRef) {
         }
       };
 
+      const onDragStart = (e) => {
+        e.preventDefault();
+      };
+
       el.style.cursor = "grab";
-      // touch-action: pan-y 로 두면 가로 드래그 시 브라우저가 수직 제스처로 오인하여
-      // pointermove 를 끊어버리는 경우가 있음. pan-y 대신 가로 제스처를 우리 훅이
-      // 독점하도록 pan-x 까지 허용(= none) 으로 세팅.
       el.style.touchAction = "pan-y";
 
       el.addEventListener("pointerdown", onDown);
@@ -146,8 +150,32 @@ export default function useDragScrollAll(containerRef) {
         el.removeEventListener("dragstart", onDragStart);
         el._dragBound = false;
       });
-    });
+    };
 
-    return () => cleanups.forEach((fn) => fn());
-  });
+    const queryRoot = (root) => {
+      if (root.nodeType !== 1 && root !== document) return;
+      if (root.matches && root.matches(SELECTOR)) bindRow(root);
+      const list = root.querySelectorAll ? root.querySelectorAll(SELECTOR) : [];
+      list.forEach(bindRow);
+    };
+
+    queryRoot(container);
+
+    // 동적으로 추가되는 .js-drag-scroll 레일도 즉시 바인딩
+    // (예: 여행 코스 모달이 열리면서 mount 되는 PhotoGalleryStrip / AccessibleSpotsStrip)
+    let observer = null;
+    if (typeof MutationObserver !== "undefined") {
+      observer = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          m.addedNodes.forEach((node) => queryRoot(node));
+        }
+      });
+      observer.observe(container, { childList: true, subtree: true });
+    }
+
+    return () => {
+      if (observer) observer.disconnect();
+      cleanups.forEach((fn) => fn());
+    };
+  }, [containerRef]);
 }
