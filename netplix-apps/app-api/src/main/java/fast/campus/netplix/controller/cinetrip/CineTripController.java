@@ -3,12 +3,15 @@ package fast.campus.netplix.controller.cinetrip;
 import fast.campus.netplix.cinetrip.CineTripItem;
 import fast.campus.netplix.cinetrip.CineTripUseCase;
 import fast.campus.netplix.controller.NetplixApiResponse;
+import fast.campus.netplix.controller.tour.AccessiblePoiResponse;
+import fast.campus.netplix.tour.GetAccessiblePoiUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +30,14 @@ import java.util.Map;
 public class CineTripController {
 
     private final CineTripUseCase cineTripUseCase;
+    private final GetAccessiblePoiUseCase accessiblePoiUseCase;
+
+    /** CineTrip 상세 모달에서 "이 지역 함께 가볼만한 곳" 섹션에 쓰는 키. */
+    private static final Map<String, String> ACCESSIBLE_BUCKETS = Map.of(
+            "attractions", "12", // 관광지
+            "restaurants", "39", // 음식점
+            "accommodations", "32" // 숙박
+    );
 
     @GetMapping("/curate")
     public NetplixApiResponse<List<CineTripResponse>> curate(
@@ -65,6 +76,30 @@ public class CineTripController {
     @GetMapping("/count")
     public NetplixApiResponse<Long> count() {
         return NetplixApiResponse.ok(cineTripUseCase.count());
+    }
+
+    /**
+     * CineTrip 상세 모달용 "이 영화 배경지 근처 무장애 스팟" 묶음 조회.
+     * 관광지/음식점/숙박 3종을 각 {@code perBucket} 개씩 반환. KorWithService2 미설정 시 빈 맵.
+     */
+    @GetMapping("/region/{areaCode}/accessible")
+    public NetplixApiResponse<Map<String, List<AccessiblePoiResponse>>> accessibleByRegion(
+            @PathVariable String areaCode,
+            @RequestParam(defaultValue = "5") int perBucket) {
+        Map<String, List<AccessiblePoiResponse>> result = new LinkedHashMap<>();
+        if (!accessiblePoiUseCase.isConfigured()) {
+            ACCESSIBLE_BUCKETS.keySet().forEach(k -> result.put(k, List.of()));
+            return NetplixApiResponse.ok(result);
+        }
+        ACCESSIBLE_BUCKETS.forEach((bucket, typeId) -> {
+            List<AccessiblePoiResponse> pois = accessiblePoiUseCase
+                    .byArea(areaCode, typeId, perBucket)
+                    .stream()
+                    .map(AccessiblePoiResponse::from)
+                    .toList();
+            result.put(bucket, pois);
+        });
+        return NetplixApiResponse.ok(result);
     }
 
     private String resolveCsv(MultipartFile file, String body) throws Exception {

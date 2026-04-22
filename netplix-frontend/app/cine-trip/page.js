@@ -8,6 +8,7 @@ import axios from '@/lib/axiosConfig';
 import { shareContent, shareResultMessage } from '@/lib/shareUtils';
 import PhotoGalleryStrip from '@/components/PhotoGalleryStrip';
 import ConcentrationForecastStrip from '@/components/ConcentrationForecastStrip';
+import AccessibleSpotsStrip from '@/components/AccessibleSpotsStrip';
 
 const REGION_FILTERS = [
   { label: '전체', areaCode: null },
@@ -711,6 +712,11 @@ function TravelCourseModal({ movie, mappings, regionIndices, score, onClose }) {
                     areaCode={m.areaCode}
                     limit={8}
                     title={`${m.regionName || m.areaCode} 관광공모전 수상작`}
+                  />
+
+                  <AccessibleSpotsStrip
+                    areaCode={m.areaCode}
+                    regionLabel={m.regionName || ''}
                   />
                 </section>
               );

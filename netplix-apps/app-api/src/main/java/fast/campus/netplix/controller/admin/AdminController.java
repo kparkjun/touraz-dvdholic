@@ -4,6 +4,8 @@ import fast.campus.netplix.admin.*;
 import fast.campus.netplix.cinetrip.PendingMappingReview;
 import fast.campus.netplix.cinetrip.ReviewPendingMappingUseCase;
 import fast.campus.netplix.controller.NetplixApiResponse;
+import fast.campus.netplix.tour.AccessiblePoi;
+import fast.campus.netplix.tour.GetAccessiblePoiUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -25,6 +28,17 @@ public class AdminController {
     private final AdminDashboardUseCase adminDashboardUseCase;
     private final CultureVsTourInsightUseCase cultureVsTourInsightUseCase;
     private final ReviewPendingMappingUseCase reviewPendingMappingUseCase;
+    private final GetAccessiblePoiUseCase accessiblePoiUseCase;
+
+    /** 17개 광역시도 (KorService2 areaCode + 표기명). */
+    private static final List<String[]> KTO_REGIONS = List.of(
+            new String[]{"1", "서울"}, new String[]{"2", "인천"}, new String[]{"3", "대전"},
+            new String[]{"4", "대구"}, new String[]{"5", "광주"}, new String[]{"6", "부산"},
+            new String[]{"7", "울산"}, new String[]{"8", "세종"}, new String[]{"31", "경기"},
+            new String[]{"32", "강원"}, new String[]{"33", "충북"}, new String[]{"34", "충남"},
+            new String[]{"35", "경북"}, new String[]{"36", "경남"}, new String[]{"37", "전북"},
+            new String[]{"38", "전남"}, new String[]{"39", "제주"}
+    );
 
     @PostMapping("/login")
     public NetplixApiResponse<Map<String, String>> login(@RequestBody AdminLoginRequest request) {
@@ -131,6 +145,60 @@ public class AdminController {
     public NetplixApiResponse<String> rejectPendingMapping(@PathVariable("id") Long id) {
         reviewPendingMappingUseCase.reject(id);
         return NetplixApiResponse.ok("rejected");
+    }
+
+    // --------------------------------------------------------------------
+    //  무장애 여행 POI 커버리지 (KorWithService2)
+    // --------------------------------------------------------------------
+    // - 17개 광역 × 1 콘텐츠타입 로딩 (어댑터 6h TTL 캐시 재사용).
+    // - 접근성 유형별(physical/visual/hearing/family) 보유 비율을 함께 집계한다.
+
+    /**
+     * 지역별 무장애 POI 수 + 접근성 유형별 보유 비율.
+     *
+     * @param type 콘텐츠타입 ID (12 관광지/14 문화/25 코스/32 숙박/39 음식점). 기본 12.
+     */
+    @GetMapping("/insights/accessible-coverage")
+    public NetplixApiResponse<Map<String, Object>> accessibleCoverage(
+            @RequestParam(name = "type", defaultValue = "12") String contentTypeId) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("contentTypeId", contentTypeId);
+        out.put("configured", accessiblePoiUseCase.isConfigured());
+        List<Map<String, Object>> rows = new ArrayList<>();
+        int sumTotal = 0, sumPhysical = 0, sumVisual = 0, sumHearing = 0, sumFamily = 0;
+        for (String[] r : KTO_REGIONS) {
+            String areaCode = r[0];
+            String regionName = r[1];
+            List<AccessiblePoi> pois = accessiblePoiUseCase.byArea(areaCode, contentTypeId, 30);
+            int total = pois.size();
+            int physical = (int) pois.stream().filter(AccessiblePoi::hasPhysicalAccess).count();
+            int visual = (int) pois.stream().filter(AccessiblePoi::hasVisualAccess).count();
+            int hearing = (int) pois.stream().filter(AccessiblePoi::hasHearingAccess).count();
+            int family = (int) pois.stream().filter(AccessiblePoi::hasFamilyAccess).count();
+            sumTotal += total;
+            sumPhysical += physical;
+            sumVisual += visual;
+            sumHearing += hearing;
+            sumFamily += family;
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("areaCode", areaCode);
+            row.put("regionName", regionName);
+            row.put("total", total);
+            row.put("physical", physical);
+            row.put("visual", visual);
+            row.put("hearing", hearing);
+            row.put("family", family);
+            rows.add(row);
+        }
+        out.put("rows", rows);
+        Map<String, Integer> totals = new LinkedHashMap<>();
+        totals.put("total", sumTotal);
+        totals.put("physical", sumPhysical);
+        totals.put("visual", sumVisual);
+        totals.put("hearing", sumHearing);
+        totals.put("family", sumFamily);
+        out.put("totals", totals);
+        return NetplixApiResponse.ok(out);
     }
 
     public record AdminLoginRequest(String adminId, String password) {}

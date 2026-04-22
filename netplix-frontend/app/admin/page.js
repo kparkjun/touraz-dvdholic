@@ -328,6 +328,10 @@ function Dashboard({ onLogout }) {
   const [stats, setStats] = useState([]);
   const [insights, setInsights] = useState([]);
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [accessibility, setAccessibility] = useState({ rows: [], totals: null, contentTypeId: "12", configured: true });
+  const [accessibilityLoading, setAccessibilityLoading] = useState(false);
+  const [accessibilityError, setAccessibilityError] = useState(null);
+  const [accessibilityType, setAccessibilityType] = useState("12");
   const [pendingMappings, setPendingMappings] = useState([]);
   const [pendingMappingsTotal, setPendingMappingsTotal] = useState(0);
   const [pendingMappingsLoading, setPendingMappingsLoading] = useState(false);
@@ -411,6 +415,43 @@ function Dashboard({ onLogout }) {
     if (insights.length > 0 || insightsLoading) return;
     fetchInsights();
   }, [activeTab, insights.length, insightsLoading, fetchInsights]);
+
+  const fetchAccessibility = React.useCallback(async (typeId) => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) return;
+    setAccessibilityLoading(true);
+    setAccessibilityError(null);
+    try {
+      const res = await axios.get(
+        `/api/v1/admin/insights/accessible-coverage?type=${encodeURIComponent(typeId || "12")}`,
+        { timeout: ADMIN_FETCH_TIMEOUT_MS }
+      );
+      if (res?.data?.success) {
+        const d = res.data.data || {};
+        setAccessibility({
+          rows: Array.isArray(d.rows) ? d.rows : [],
+          totals: d.totals || null,
+          contentTypeId: d.contentTypeId || typeId || "12",
+          configured: d.configured !== false,
+        });
+      }
+    } catch (e) {
+      if (e?.response?.status === 401) {
+        localStorage.removeItem("adminToken");
+        onLogout();
+      } else {
+        console.error("무장애 커버리지 로드 실패:", e);
+        setAccessibilityError(isTimeoutError(e) ? "timeout" : "error");
+      }
+    } finally {
+      setAccessibilityLoading(false);
+    }
+  }, [onLogout]);
+
+  useEffect(() => {
+    if (activeTab !== "accessibility") return;
+    fetchAccessibility(accessibilityType);
+  }, [activeTab, accessibilityType, fetchAccessibility]);
 
   const fetchPendingMappings = React.useCallback(async () => {
     const token = localStorage.getItem("adminToken");
@@ -630,7 +671,7 @@ function Dashboard({ onLogout }) {
             }}
           >
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {["admins", "users", "logs", "stats", "insights", "pending"].map((tab) => (
+              {["admins", "users", "logs", "stats", "insights", "accessibility", "pending"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -641,13 +682,15 @@ function Dashboard({ onLogout }) {
                     background: activeTab === tab
                       ? (tab === "insights"
                           ? "linear-gradient(135deg, #6366f1, #ec4899)"
-                          : tab === "pending"
-                            ? "linear-gradient(135deg, #f97316, #ef4444)"
-                            : "linear-gradient(135deg, #10b981, #059669)")
+                          : tab === "accessibility"
+                            ? "linear-gradient(135deg, #06b6d4, #0ea5e9)"
+                            : tab === "pending"
+                              ? "linear-gradient(135deg, #f97316, #ef4444)"
+                              : "linear-gradient(135deg, #10b981, #059669)")
                       : "#fff",
                     color: activeTab === tab
                       ? "#fff"
-                      : (tab === "insights" ? "#6366f1" : tab === "pending" ? "#c2410c" : "#047857"),
+                      : (tab === "insights" ? "#6366f1" : tab === "accessibility" ? "#0e7490" : tab === "pending" ? "#c2410c" : "#047857"),
                     fontWeight: 600,
                     cursor: "pointer",
                     display: "flex",
@@ -660,6 +703,7 @@ function Dashboard({ onLogout }) {
                   {tab === "logs" && t("admin.accessLogs")}
                   {tab === "stats" && t("admin.dailyStats")}
                   {tab === "insights" && t("admin.cultureVsTour", "문화×관광")}
+                  {tab === "accessibility" && t("admin.accessibleCoverage", "무장애 커버리지")}
                   {tab === "pending" && (
                     <>
                       {t("admin.aiMappingReview", "AI 추천 영화·지역 확인")}
@@ -762,6 +806,16 @@ function Dashboard({ onLogout }) {
                       error={insightsError}
                       onRetry={fetchInsights}
                       onDownloadCsv={downloadInsightsCsv}
+                    />
+                  )}
+                  {activeTab === "accessibility" && (
+                    <AccessibleCoveragePanel
+                      data={accessibility}
+                      loading={accessibilityLoading}
+                      error={accessibilityError}
+                      activeType={accessibilityType}
+                      onTypeChange={setAccessibilityType}
+                      onRetry={() => fetchAccessibility(accessibilityType)}
                     />
                   )}
                   {activeTab === "pending" && (
@@ -1231,6 +1285,180 @@ function PendingMappingsPanel({ rows, total, loading, error, onApprove, onReject
                   </tr>
                 );
               })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ACCESSIBILITY_TYPES = [
+  { id: "12", label: "관광지" },
+  { id: "14", label: "문화시설" },
+  { id: "25", label: "여행코스" },
+  { id: "32", label: "숙박" },
+  { id: "39", label: "음식점" },
+];
+
+function AccessibleCoveragePanel({ data, loading, error, activeType, onTypeChange, onRetry }) {
+  const { rows = [], totals, configured = true, contentTypeId } = data || {};
+  const ratio = (num) => {
+    if (!totals || !totals.total) return 0;
+    return Math.round(((num || 0) / totals.total) * 100);
+  };
+  return (
+    <div>
+      <div style={{ padding: "16px 24px", borderBottom: "1px solid #e5e7eb" }}>
+        <h3 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
+          무장애 여행정보 커버리지
+        </h3>
+        <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
+          한국관광공사 KorWithService2 기준 광역별 무장애 POI 수 · 접근성 유형별 보유 비율
+        </p>
+        {!configured && (
+          <p style={{ margin: "8px 0 0", fontSize: 12, color: "#b91c1c" }}>
+            ⚠ KorWithService2 서비스키 미설정 — 서버 환경변수 VISITKOREA_SERVICE_KEY 및 yml 활성화 확인 필요
+          </p>
+        )}
+      </div>
+
+      <div style={{ padding: "14px 24px", display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {ACCESSIBILITY_TYPES.map((t) => {
+          const active = activeType === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onTypeChange(t.id)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 20,
+                border: active ? "1px solid #0ea5e9" : "1px solid #e5e7eb",
+                background: active ? "#e0f2fe" : "#fff",
+                color: active ? "#0369a1" : "#475569",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {t.label} ({t.id})
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={onRetry}
+          style={{
+            marginLeft: "auto",
+            padding: "6px 14px",
+            borderRadius: 20,
+            border: "1px solid #e5e7eb",
+            background: "#fff",
+            color: "#475569",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          새로고침
+        </button>
+      </div>
+
+      {totals && (
+        <div
+          style={{
+            padding: "12px 24px",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: 10,
+            borderBottom: "1px solid #f1f5f9",
+          }}
+        >
+          {[
+            { k: "total", label: "총 POI", color: "#0f172a" },
+            { k: "physical", label: "휠체어 접근", color: "#06b6d4" },
+            { k: "visual", label: "시각 편의", color: "#a855f7" },
+            { k: "hearing", label: "청각 편의", color: "#ec4899" },
+            { k: "family", label: "가족 편의", color: "#f59e0b" },
+          ].map(({ k, label, color }) => (
+            <div
+              key={k}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 10,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <p style={{ margin: 0, fontSize: 11, color: "#64748b" }}>{label}</p>
+              <p style={{ margin: "2px 0 0", fontSize: 20, fontWeight: 700, color }}>
+                {totals[k] || 0}
+                {k !== "total" && (
+                  <span style={{ fontSize: 12, marginLeft: 6, color: "#94a3b8" }}>
+                    · {ratio(totals[k])}%
+                  </span>
+                )}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {error ? (
+        <div style={{ padding: 40, textAlign: "center", color: "#b91c1c" }}>
+          <p>데이터 로드 실패</p>
+          <button
+            onClick={onRetry}
+            style={{
+              marginTop: 10,
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: "1px solid #fca5a5",
+              background: "#fff",
+              color: "#b91c1c",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            다시 시도
+          </button>
+        </div>
+      ) : loading ? (
+        <div style={{ padding: 40, textAlign: "center", color: "#64748b" }}>
+          한국관광공사 데이터를 불러오는 중...
+        </div>
+      ) : rows.length === 0 ? (
+        <div style={{ padding: 40, textAlign: "center", color: "#64748b" }}>
+          {configured ? "이 카테고리에 등록된 무장애 POI 가 없어요." : "KorWithService2 서비스키 설정 후 이용 가능합니다."}
+        </div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #e5e7eb", background: "#f8fafc" }}>
+                {["지역", "areaCode", "총 POI", "휠체어", "시각", "청각", "가족"].map((c) => (
+                  <th
+                    key={c}
+                    style={{ padding: "12px 16px", textAlign: "left", fontWeight: 600, color: "#334155" }}
+                  >
+                    {c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.areaCode} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "10px 16px", fontWeight: 600, color: "#0f172a" }}>{r.regionName}</td>
+                  <td style={{ padding: "10px 16px", color: "#64748b" }}>{r.areaCode}</td>
+                  <td style={{ padding: "10px 16px", fontWeight: 700, color: "#0f172a" }}>{r.total}</td>
+                  <td style={{ padding: "10px 16px", color: "#0891b2" }}>{r.physical}</td>
+                  <td style={{ padding: "10px 16px", color: "#9333ea" }}>{r.visual}</td>
+                  <td style={{ padding: "10px 16px", color: "#db2777" }}>{r.hearing}</td>
+                  <td style={{ padding: "10px 16px", color: "#d97706" }}>{r.family}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

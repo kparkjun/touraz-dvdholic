@@ -84,3 +84,22 @@ visitkorea:
     award-list: ${visitkorea.phoko.base-url}/phokoAwrdList
     ldong-code: ${visitkorea.phoko.base-url}/ldongCode
     cache-minutes: 1440
+  # 무장애 여행정보 (공공데이터 포털 Base URL: apis.data.go.kr/B551011/KorWithService2)
+  # - areaBasedList2     : 지역/콘텐츠타입 기반 무장애 POI 목록
+  # - locationBasedList2 : 좌표(경·위도) 반경 기반 무장애 POI 목록 (CineTrip 촬영지 주변 탐색)
+  # - searchKeyword2     : 키워드 검색 (영화 제목 / 촬영지명 매칭 실험용)
+  # - detailWithTour2    : 콘텐츠ID 무장애 상세 (휠체어·점자블록·수유실 등 편의시설 원문)
+  # 필수 파라미터: serviceKey, MobileOS=ETC, MobileApp, numOfRows, pageNo,
+  #               areaBased → areaCode + contentTypeId,
+  #               locationBased → mapX/mapY/radius(m) + contentTypeId,
+  #               searchKeyword → keyword,
+  #               detailWithTour → contentId + contentTypeId
+  # 주의: VISITKOREA_SERVICE_KEY 단일 키를 5개 서비스가 공유하므로 QPS 초과 방지 위해
+  #       어댑터 내부에서 6시간 TTL 캐시 + 페이지당 50건 제한 (MAX_PAGE_SIZE).
+  access:
+    base-url: https://apis.data.go.kr/B551011/KorWithService2
+    area-based: ${visitkorea.access.base-url}/areaBasedList2
+    location-based: ${visitkorea.access.base-url}/locationBasedList2
+    search-keyword: ${visitkorea.access.base-url}/searchKeyword2
+    detail-with-tour: ${visitkorea.access.base-url}/detailWithTour2
+    cache-minutes: 360
