@@ -268,11 +268,16 @@ function PoiCard({ poi, bucket, onOpen }) {
             src={poi.firstImageThumb || poi.firstImage}
             alt={poi.title || 'poi'}
             loading="lazy"
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
             style={{
               width: '100%',
               height: '100%',
               objectFit: 'cover',
               display: 'block',
+              pointerEvents: 'none',
+              userSelect: 'none',
+              WebkitUserDrag: 'none',
             }}
             onError={(e) => {
               e.target.style.display = 'none';

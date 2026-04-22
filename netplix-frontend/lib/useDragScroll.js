@@ -47,6 +47,17 @@ export default function useDragScrollAll(containerRef) {
       };
 
       const onDown = (e) => {
+        // 왼쪽 마우스 버튼 또는 터치/펜 이벤트만 스크롤 드래그로 처리.
+        // (마우스의 경우 e.button === 0 이 왼쪽, 그 외(가운데/오른쪽)는 무시)
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+
+        // 이미지/버튼 내부에서 네이티브 drag 가 선행되어 스와이프가 씹히는 문제 방지.
+        // pointerdown 시점에서 기본 드래그/텍스트 선택을 차단.
+        // (click 이벤트 자체는 그대로 발생하므로 버튼/링크 클릭에는 영향 없음)
+        if (e.cancelable) {
+          try { e.preventDefault(); } catch {}
+        }
+
         stopMomentum();
         s.isDown = true;
         s.dragging = false;
@@ -56,6 +67,11 @@ export default function useDragScrollAll(containerRef) {
         s.scrollLeft = el.scrollLeft;
         s.velX = 0;
         s.pointerId = e.pointerId;
+      };
+
+      // <img>/<a> 의 브라우저 기본 드래그(고스트 이미지/링크 URL)가 스크롤을 가로채지 못하게 차단.
+      const onDragStart = (e) => {
+        e.preventDefault();
       };
 
       const onMove = (e) => {
@@ -106,19 +122,28 @@ export default function useDragScrollAll(containerRef) {
       };
 
       el.style.cursor = "grab";
+      // touch-action: pan-y 로 두면 가로 드래그 시 브라우저가 수직 제스처로 오인하여
+      // pointermove 를 끊어버리는 경우가 있음. pan-y 대신 가로 제스처를 우리 훅이
+      // 독점하도록 pan-x 까지 허용(= none) 으로 세팅.
+      el.style.touchAction = "pan-y";
+
       el.addEventListener("pointerdown", onDown);
       el.addEventListener("pointermove", onMove);
       el.addEventListener("pointerup", onUp);
+      el.addEventListener("pointercancel", onUp);
       el.addEventListener("pointerleave", onUp);
       el.addEventListener("click", onClick, true);
+      el.addEventListener("dragstart", onDragStart);
 
       cleanups.push(() => {
         stopMomentum();
         el.removeEventListener("pointerdown", onDown);
         el.removeEventListener("pointermove", onMove);
         el.removeEventListener("pointerup", onUp);
+        el.removeEventListener("pointercancel", onUp);
         el.removeEventListener("pointerleave", onUp);
         el.removeEventListener("click", onClick, true);
+        el.removeEventListener("dragstart", onDragStart);
         el._dragBound = false;
       });
     });

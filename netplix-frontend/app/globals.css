@@ -122,9 +122,20 @@ button,
   background: transparent !important;
 }
 .js-drag-scroll img {
-  -webkit-user-drag: none;
+  -webkit-user-drag: none !important;
   user-select: none;
   -webkit-user-select: none;
+  /* 이미지 자체가 포인터 이벤트를 먹어서 native drag 를 시작하지 못하도록 차단.
+   * 클릭은 부모 버튼/카드로 전달되므로 UX 에 영향 없음.
+   */
+  pointer-events: none;
+}
+/* 레일 자식(카드/버튼/링크) 은 클릭 가능해야 하므로 pointer-events 복구 */
+.js-drag-scroll > *,
+.js-drag-scroll a,
+.js-drag-scroll button,
+.js-drag-scroll [role="button"] {
+  pointer-events: auto;
 }
 
 @media (min-width: 1200px) {

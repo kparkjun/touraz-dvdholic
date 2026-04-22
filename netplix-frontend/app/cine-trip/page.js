@@ -185,12 +185,20 @@ function MovieCard({ item, index }) {
         <img
           src={posterSrc(movie.posterPath)}
           alt={movie.movieName || 'movie'}
+          draggable={false}
+          onDragStart={(e) => e.preventDefault()}
           style={{
             width: '100%',
             height: '100%',
             objectFit: 'cover',
             transition: 'transform 0.3s ease',
             transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+            // 네이티브 이미지 드래그가 부모의 스와이프 드래그를 가로채는 문제 방지.
+            // 이미지에 pointer-events: none 을 걸면 모든 포인터는 부모(카드)로 전달되어
+            // useDragScrollAll 훅이 정상적으로 가로 스크롤을 처리.
+            pointerEvents: 'none',
+            userSelect: 'none',
+            WebkitUserDrag: 'none',
           }}
           onError={(e) => {
             if (!e.target.src.endsWith(NO_POSTER_PLACEHOLDER)) {

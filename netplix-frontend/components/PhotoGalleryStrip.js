@@ -107,13 +107,17 @@ export default function PhotoGalleryStrip({ areaCode = null, keyword = null, lim
                   src={p.thumbnailUrl || p.imageUrl}
                   alt={p.title || '관광 사진'}
                   loading="lazy"
+                  draggable={false}
                   onContextMenu={(e) => e.preventDefault()}
+                  onDragStart={(e) => e.preventDefault()}
                   style={{
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
                     display: 'block',
                     userSelect: 'none',
+                    WebkitUserDrag: 'none',
+                    pointerEvents: 'none',
                   }}
                   onError={(e) => {
                     e.target.style.display = 'none';
