@@ -53,8 +53,15 @@ export default function CineTripCTA({ movieName, posterUrl, contentType }) {
   const ctaLabel = resolveCtaLabel(contentType);
   const hasItems = Array.isArray(items) && items.length > 0;
 
-  const mappings = hasItems ? items.flatMap((it) => it.mappings || []) : [];
-  const regions = hasItems ? items.flatMap((it) => it.regionIndices || []) : [];
+  // 한국관광공사 OpenAPI/로컬 CineTrip 매핑이 없는 작품(예: 해외 비한국 작품)은
+  // "이 영화로 여행가기" 진입 자체를 막아야 /cine-trip?movie=... 진입 후
+  // 스포트라이트·지역 지표·포토 갤러리가 빈 상태로 동시에 호출되며 발생하는
+  // 반복 오류("문제가 반복적으로 발생했습니다")를 원천 차단할 수 있다.
+  // 매핑이 하나도 없으면 CTA 섹션 자체를 렌더하지 않는다.
+  if (!hasItems) return null;
+
+  const mappings = items.flatMap((it) => it.mappings || []);
+  const regions = items.flatMap((it) => it.regionIndices || []);
   const uniqueRegions = new Map();
   mappings.forEach((m) => {
     if (m?.areaCode && !uniqueRegions.has(m.areaCode)) {
@@ -113,9 +120,7 @@ export default function CineTripCTA({ movieName, posterUrl, contentType }) {
           lineHeight: 1.5,
         }}
       >
-        {hasItems
-          ? '이 작품과 연결된 지역의 실시간 관광 지표를 확인하고, 촬영지·배경을 따라 여행을 계획해 보세요.'
-          : '스크린 속 풍경을 직접 걷고 싶다면 CineTrip 으로 떠나보세요. 전국 촬영지·배경 큐레이션이 준비되어 있어요.'}
+        {'이 작품과 연결된 지역의 실시간 관광 지표를 확인하고, 촬영지·배경을 따라 여행을 계획해 보세요.'}
       </p>
 
       {regionChips.length > 0 && (
