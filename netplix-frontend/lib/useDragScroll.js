@@ -10,7 +10,9 @@ import { useEffect } from "react";
  * 동작:
  *  - 왼쪽 마우스 버튼 / 터치 / 펜 으로 좌우 드래그 → 관성 스크롤 포함
  *  - 6px 이상 이동해야 드래그로 인식(→ 가벼운 클릭은 버튼/링크로 전달)
- *  - 마우스 휠(수직)을 수평으로 매핑(관성/스무딩 포함)
+ *  - 명시적 수평 휠(Shift+wheel 또는 트랙패드 수평 제스처 |deltaX|>|deltaY|)만
+ *    수평 스크롤로 매핑(관성/스무딩 포함). 일반 수직 휠은 페이지의 기본
+ *    세로 스크롤을 방해하지 않도록 통과시킴.
  *  - pointermove 이벤트는 rAF 로 스로틀하여 고주사율 디스플레이에서 지터 제거
  *
  * 동적 마운트 대응:
@@ -196,18 +198,30 @@ export default function useDragScrollAll(containerRef) {
         wheelRaf = requestAnimationFrame(wheelTick);
       };
       const onWheel = (e) => {
-        // Shift+wheel 이나 horizontal trackpad 는 이미 수평, 그 외에는 수직→수평 매핑
-        const dominant = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-        if (dominant === 0) return;
-        // 컨테이너가 실제로 가로 스크롤 가능한지 확인
+        // 컨테이너가 실제로 가로 스크롤 가능한지 먼저 확인
         if (el.scrollWidth <= el.clientWidth + 1) return;
+
+        // 명시적 수평 제스처만 가로 스크롤로 매핑:
+        //  - Shift+휠 (데스크탑 휠 마우스에서 의도적 수평 스크롤)
+        //  - 트랙패드 수평 스와이프 (|deltaX| > |deltaY|)
+        // 일반 수직 휠(마우스 트랙볼 위/아래)은 페이지 세로 스크롤을
+        // 방해하지 않도록 통과시킴.
+        const horizontalDelta = e.shiftKey
+          ? e.deltaY
+          : Math.abs(e.deltaX) > Math.abs(e.deltaY)
+          ? e.deltaX
+          : 0;
+        if (horizontalDelta === 0) return;
+
         e.preventDefault();
         setScrolling(true);
-        wheelVelX = wheelVelX * 0.6 + dominant * WHEEL_HORIZONTAL_RATIO * 0.4;
+        wheelVelX =
+          wheelVelX * 0.6 + horizontalDelta * WHEEL_HORIZONTAL_RATIO * 0.4;
         if (Math.abs(wheelVelX) > MAX_VELOCITY_PX_PER_FRAME) {
-          wheelVelX = wheelVelX > 0 ? MAX_VELOCITY_PX_PER_FRAME : -MAX_VELOCITY_PX_PER_FRAME;
+          wheelVelX =
+            wheelVelX > 0 ? MAX_VELOCITY_PX_PER_FRAME : -MAX_VELOCITY_PX_PER_FRAME;
         }
-        el.scrollLeft += dominant * WHEEL_HORIZONTAL_RATIO * 0.5;
+        el.scrollLeft += horizontalDelta * WHEEL_HORIZONTAL_RATIO * 0.5;
         if (!wheelRaf) wheelRaf = requestAnimationFrame(wheelTick);
       };
 
