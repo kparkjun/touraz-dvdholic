@@ -117,12 +117,20 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
 
     private synchronized void refreshAll() {
         List<TourGallery> photos = requestAllPages(listUrl, Map.of(), MAX_PAGES_ALL);
+        if (photos == null) {
+            log.warn("[GALLERY] 전체 로드 실패 - 캐시 유지(다음 요청에서 재시도)");
+            return;
+        }
         cache.put(ALL_KEY, new CacheSnapshot(photos, Instant.now().toEpochMilli()));
         log.info("[GALLERY] 전체 캐시 갱신 - {} 건", photos.size());
     }
 
     private synchronized void refreshByKeyword(String keyword, String cacheKey) {
         List<TourGallery> photos = requestAllPages(searchUrl, Map.of("keyword", keyword), MAX_PAGES_KEYWORD);
+        if (photos == null) {
+            log.warn("[GALLERY] 키워드={} 로드 실패 - 캐시 저장 스킵", keyword);
+            return;
+        }
         if (cache.size() >= MAX_KEYWORD_CACHE) {
             // 가장 오래된 항목 1개 제거 (근사치 LRU)
             cache.entrySet().stream()
@@ -137,12 +145,13 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
     /**
      * totalCount 기반으로 페이지를 전부 순회해 한 번에 적재한다.
      * - 1페이지를 먼저 받아 totalCount 를 확인하고 남은 페이지를 순차 호출.
-     * - 응답이 이상하거나 중간 실패 시 지금까지 모은 것만 반환(복구 가능성 유지).
+     * - 첫 페이지 자체가 실패면 {@code null} 반환 → 호출자가 음성 캐시를 저장하지 않게.
+     * - 중간 페이지가 실패하면 지금까지 모은 것을 반환(부분 복구).
      * - 일일 쿼터 1,000회 고려: 전체(~31페이지) + 키워드 수 개 수준 → 넉넉.
      */
     private List<TourGallery> requestAllPages(String baseUrl, Map<String, String> extraParams, int maxPages) {
         PageResult first = requestPage(baseUrl, extraParams, 1);
-        if (first == null) return List.of();
+        if (first == null) return null; // 파싱/네트워크 실패 - 호출자가 캐시 저장 스킵
 
         List<TourGallery> acc = new ArrayList<>(first.items);
         int totalCount = first.totalCount;
@@ -204,7 +213,11 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
 
         VisitKoreaGalleryResponse parsed;
         try {
-            String safe = trimmed.replace("\"items\":\"\"", "\"items\":null");
+            // KTO 응답이 결과 0건일 때 "items":"", "items": "", "item":"" 등 빈 문자열로 내려오므로
+            // Jackson 이 객체 자리에서 coercion 에러를 내지 않도록 미리 null 로 치환.
+            String safe = trimmed
+                    .replaceAll("\"items\"\\s*:\\s*\"\\s*\"", "\"items\":null")
+                    .replaceAll("\"item\"\\s*:\\s*\"\\s*\"", "\"item\":null");
             parsed = ObjectMapperUtil.toObject(safe, VisitKoreaGalleryResponse.class);
         } catch (Exception ex) {
             log.error("[GALLERY] 파싱 실패 page={} err={}", pageNo, ex.getMessage());
