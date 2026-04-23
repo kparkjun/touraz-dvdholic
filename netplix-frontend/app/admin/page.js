@@ -547,6 +547,42 @@ function Dashboard({ onLogout }) {
     }
   };
 
+  /**
+   * TMDB 영화 메타에서 한국 지역을 자동 추출해 AUTO 매핑을 일괄 생성한다.
+   * 결과는 즉시 DB 에 upsert 되며, MANUAL 매핑은 그대로 보존된다.
+   * 대량 스캔이라 10~60초 정도 소요될 수 있다.
+   */
+  const runAutoMapping = async () => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) return;
+    if (!confirm("TMDB 전체 영화를 스캔해 한국 지역 자동 매핑을 생성합니다.\n수십 초~1분 정도 걸릴 수 있어요. 진행할까요?")) {
+      return;
+    }
+    try {
+      const res = await axios.post(
+        "/api/v1/cine-trip/auto-map?maxPerMovie=3",
+        null,
+        { timeout: 120000 }
+      );
+      const data = res?.data?.data;
+      if (data) {
+        alert(
+          "TMDB 자동 매핑 완료\n\n" +
+          `스캔: ${data.scannedMovies} 편\n` +
+          `매칭된 영화: ${data.moviesWithMatch} 편\n` +
+          `신규 매핑: ${data.generatedMappings} 건\n` +
+          `MANUAL 보존(스킵): ${data.skippedDueToManual} 건\n` +
+          `총 매핑: ${data.totalMappingsAfter} 건`
+        );
+      } else {
+        alert("응답 형식이 예상과 달라요. 콘솔을 확인해주세요.");
+      }
+    } catch (e) {
+      console.error("자동 매핑 실행 실패:", e);
+      alert("자동 매핑 실행 실패: " + (e?.response?.data?.message || e.message));
+    }
+  };
+
   const downloadInsightsCsv = async () => {
     const token = localStorage.getItem("adminToken");
     if (!token) return;
@@ -881,6 +917,7 @@ function Dashboard({ onLogout }) {
                       onApprove={approvePendingMapping}
                       onReject={rejectPendingMapping}
                       onRefresh={fetchPendingMappings}
+                      onRunAutoMap={runAutoMapping}
                     />
                   )}
                 </motion.div>
@@ -1134,7 +1171,7 @@ function CultureVsTourPanel({ rows, loading, error, onRetry, onDownloadCsv }) {
   );
 }
 
-function PendingMappingsPanel({ rows, total, loading, error, onApprove, onReject, onRefresh }) {
+function PendingMappingsPanel({ rows, total, loading, error, onApprove, onReject, onRefresh, onRunAutoMap }) {
   const { t } = useTranslation();
 
   const typeColor = (type) => {
@@ -1178,10 +1215,31 @@ function PendingMappingsPanel({ rows, total, loading, error, onApprove, onReject
             )}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div style={{ fontSize: 13, color: "#7c2d12" }}>
             {t("admin.pendingTotal", "대기")}: <strong>{total}</strong>
           </div>
+          {onRunAutoMap && (
+            <button
+              onClick={onRunAutoMap}
+              disabled={loading}
+              title="TMDB 메타에서 한국 지역 자동 매핑(AUTO) 생성 — MANUAL 은 보존"
+              style={{
+                padding: "8px 14px",
+                borderRadius: 8,
+                border: "2px solid #6366f1",
+                background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: loading ? "not-allowed" : "pointer",
+                opacity: loading ? 0.6 : 1,
+                boxShadow: "0 4px 12px -4px rgba(99,102,241,0.4)",
+              }}
+            >
+              ⚡ {t("admin.runAutoMap", "TMDB 자동 매핑 실행")}
+            </button>
+          )}
           <button
             onClick={onRefresh}
             disabled={loading}
