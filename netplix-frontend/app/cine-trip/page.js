@@ -997,7 +997,7 @@ function CineTripPageInner() {
 
         <PhotoGalleryStrip
           areaCode={selectedAreaCode}
-          limit={12}
+          limit={200}
           title={
             selectedAreaCode
               ? `${REGION_FILTERS.find((r) => r.areaCode === selectedAreaCode)?.label || ''} 수상작 포토스팟`
