@@ -274,6 +274,19 @@
     "productsLabel": "취급",
     "phoneNone": "전화번호 없음"
   },
+  "tourGallery": {
+    "defaultTitle": "관광사진 갤러리",
+    "totalCount": "총 {{count}}장",
+    "untitled": "(제목 없음)",
+    "lightboxLabel": "사진 크게 보기",
+    "close": "닫기",
+    "prev": "이전",
+    "next": "다음",
+    "movieSection": "이 영화 배경이 된 풍경 사진",
+    "regionSection": "이 지역의 관광 풍경",
+    "dvdStoreSection": "이 동네 가볼 만한 풍경",
+    "poweredBy": "출처: 한국관광공사 PhotoGalleryService1"
+  },
   "admin": {
     "loginTitle": "관리자 로그인",
     "id": "아이디",

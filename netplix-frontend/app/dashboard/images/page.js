@@ -7,6 +7,7 @@ import axios from "@/lib/axiosConfig";
 import { getMovieTitle, getPosterPath, getBackdropPath, getOverview, getTagline } from "@/lib/movieLang";
 import CineTripCTA from "@/components/CineTripCTA";
 import PhotoGalleryStrip from "@/components/PhotoGalleryStrip";
+import TourGallerySection from "@/components/TourGallerySection";
 
 const baseUrl = "https://image.tmdb.org/t/p/original";
 const palette = {
@@ -577,6 +578,18 @@ function MovieImagesContent() {
               keyword={movieName}
               limit={10}
               title={`"${movieName}" 관련 관광 수상작`}
+            />
+          </div>
+        )}
+
+        {/* 관광사진갤러리 — PhotoGalleryService1 (영화명 키워드, 결과 없으면 자동 숨김) */}
+        {movieName && (
+          <div style={{ padding: "0 15px", marginBottom: 12 }}>
+            <TourGallerySection
+              keyword={movieName}
+              title={t("tourGallery.movieSection")}
+              subtitle={t("tourGallery.poweredBy")}
+              limit={24}
             />
           </div>
         )}

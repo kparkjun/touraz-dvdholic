@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import axios from "@/lib/axiosConfig";
 import { Search, MapPin, Phone, Clock, Package, ChevronLeft, ChevronRight, Store, LocateFixed, Navigation, X, Building2, Briefcase, CalendarClock, PauseCircle, Ruler, Map, List, Layers } from "lucide-react";
 import CultureMapLayer from "@/components/CultureMapLayer";
+import TourGallerySection from "@/components/TourGallerySection";
 let L, MapContainer, TileLayer, Marker, Popup, useMap;
 let greenIcon, redIcon, blueIcon;
 
@@ -199,6 +200,25 @@ function DvdStoresContent() {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const pageStores = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  /*
+   * 관광사진갤러리용 키워드 도출.
+   * - 사용자가 검색어를 넣었으면 우선 사용 (예: "해운대", "제주")
+   * - 아니면 현재 목록 첫 매장의 주소에서 시·도명 추출
+   *   (도/시/특별시/광역시/특별자치도 접미 제거 → "경상남도" → "경상남")
+   * - 비어 있으면 빈 문자열 반환해 컴포넌트가 섹션을 자동 숨김 처리하도록 위임
+   */
+  const galleryKeyword = useMemo(() => {
+    if (keyword && keyword.trim()) return keyword.trim();
+    const first = filtered[0];
+    const addr = first?.roadAddress || first?.jibunAddress || "";
+    if (!addr) return "";
+    const head = addr.trim().split(/\s+/)[0] || "";
+    if (head.length <= 2) return head;
+    return head
+      .replace(/특별자치도$|특별자치시$|특별시$|광역시$|자치시$|자치도$|도$|시$/, "")
+      || head;
+  }, [keyword, filtered]);
 
   const operatingCount = nearbyMode
     ? nearbyStores.length
@@ -502,6 +522,23 @@ function DvdStoresContent() {
             </div>
           )}
         </>
+      )}
+
+      {/*
+       * 관광사진갤러리 — PhotoGalleryService1
+       * - "DVD 보러 간 김에 둘러볼 곳" 컨셉. 검색어 또는 현재 리스트 첫 매장의 시·도명을 키워드로.
+       * - 결과 0건이면 섹션 자체가 렌더되지 않아 UI 공백 없음.
+       * - 지도 모드(viewMode === "map") 에서는 숨겨 지도 UX 를 해치지 않음.
+       */}
+      {viewMode !== "map" && galleryKeyword && (
+        <div style={{ maxWidth: 1200, margin: "24px auto 0", padding: "0 4px" }}>
+          <TourGallerySection
+            keyword={galleryKeyword}
+            title={t("tourGallery.dvdStoreSection")}
+            subtitle={t("tourGallery.poweredBy")}
+            limit={24}
+          />
+        </div>
       )}
 
       <style>{`

@@ -148,6 +148,22 @@ visitkorea:
     detail-pet-tour: ${visitkorea.pet.base-url}/detailPetTour2
     cache-minutes: 360
     warmer-enabled: true
+  # 관광사진갤러리 (PhotoGalleryService1) - 공공데이터 15145630
+  # Base URL: apis.data.go.kr/B551011/PhotoGalleryService1
+  # 오퍼레이션: /galleryList1 (전체 목록), /gallerySearchList1 (키워드 검색),
+  #            /galleryDetailList1 (제목 기준 상세), /gallerySyncDetailList1 (동기화)
+  # 필수: serviceKey, MobileOS=ETC, MobileApp, numOfRows, pageNo
+  # 선택(search): keyword
+  # 일일 트래픽 1,000회 상한 → 24h in-memory 캐시 + 키워드별 캐시(최대 64개) 사용.
+  # 주의: PhotoGalleryService1 은 공용 VISITKOREA_SERVICE_KEY 와 별도 활용신청이 필요하므로
+  #       VISITKOREA_GALLERY_API_KEY 를 독립 env 로 분리. 미설정 시 어댑터가 isConfigured=false
+  #       로 판정하여 모든 엔드포인트는 빈 리스트를 반환(섹션 자연 숨김).
+  gallery:
+    base-url: https://apis.data.go.kr/B551011/PhotoGalleryService1
+    api-key: ${VISITKOREA_GALLERY_API_KEY:${VISITKOREA_SERVICE_KEY:}}
+    list-url: ${visitkorea.gallery.base-url}/galleryList1
+    search-url: ${visitkorea.gallery.base-url}/gallerySearchList1
+    cache-minutes: 1440
   # 두루누비 정보 서비스 GW (공공데이터 15101974, TourAPI Guide v4.1)
   # Base URL: apis.data.go.kr/B551011/Durunubi
   # 공식 오퍼레이션 2종:

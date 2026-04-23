@@ -303,6 +303,19 @@
     "productsLabel": "Products",
     "phoneNone": "No phone"
   },
+  "tourGallery": {
+    "defaultTitle": "Tourism Photo Gallery",
+    "totalCount": "{{count}} photos",
+    "untitled": "(untitled)",
+    "lightboxLabel": "View photo",
+    "close": "Close",
+    "prev": "Previous",
+    "next": "Next",
+    "movieSection": "Real-life Scenery from this Movie",
+    "regionSection": "Scenery of this Region",
+    "dvdStoreSection": "Places to Visit Nearby",
+    "poweredBy": "Source: Korea Tourism Organization PhotoGalleryService1"
+  },
   "admin": {
     "loginTitle": "Admin Login",
     "id": "ID",

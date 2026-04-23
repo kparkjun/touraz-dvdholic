@@ -18,6 +18,7 @@ import axios from '@/lib/axiosConfig';
 import { useTranslation } from 'react-i18next';
 import { shareContent, shareResultMessage } from '@/lib/shareUtils';
 import PhotoGalleryStrip from '@/components/PhotoGalleryStrip';
+import TourGallerySection from '@/components/TourGallerySection';
 import ConcentrationForecastStrip from '@/components/ConcentrationForecastStrip';
 import EngTourSpotsStrip from '@/components/EngTourSpotsStrip';
 import TravelCourseModal from '@/components/TravelCourseModal';
@@ -1004,6 +1005,21 @@ function CineTripPageInner() {
               : '전국 수상작 포토스팟'
           }
         />
+
+        {/*
+         * 관광사진갤러리 — PhotoGalleryService1
+         * - 지역이 선택되어 있을 때만 해당 지역명(한글 라벨)을 키워드로 검색
+         * - 결과 0건 또는 키 미승인 상태면 컴포넌트 자체가 null 반환 → 섹션 숨김
+         * - PhotoGalleryStrip(수상작) 이 비어 있거나 적을 때 전체 DB 기반 커버리지 보강
+         */}
+        {selectedAreaCode && (
+          <TourGallerySection
+            keyword={REGION_FILTERS.find((r) => r.areaCode === selectedAreaCode)?.label || ''}
+            title={t('tourGallery.regionSection')}
+            subtitle={t('tourGallery.poweredBy')}
+            limit={24}
+          />
+        )}
 
         {/*
          * 영어 모드 전용 "Travel Spots Around This Film" 스트립.
