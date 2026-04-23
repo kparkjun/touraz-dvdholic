@@ -39,7 +39,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class VisitKoreaPetHttpClient implements PetFriendlyPoiPort {
 
-    private static final int MAX_PAGE_SIZE = 50;
+    /** KTO OpenAPI 단일 페이지 최대 크기. 한 번 호출에 최대한 많이 받기 위해 100 으로 상향. */
+    private static final int MAX_PAGE_SIZE = 100;
+    /** fetchByArea 에서 전체 페이지 누적 수집 시 안전 상한. 사실상 모든 지역/타입을 커버. */
+    private static final int HARD_ITEM_CAP = 2000;
 
     private final HttpClient httpClient;
 
@@ -82,7 +85,10 @@ public class VisitKoreaPetHttpClient implements PetFriendlyPoiPort {
         if (cached != null && (now - cached.loadedAtMs) < Duration.ofMinutes(cacheMinutes).toMillis()) {
             return take(cached.items, limit);
         }
-        List<PetFriendlyPoi> items = callListApi(areaBasedUrl, Map.of(
+        // KorPetTourService 는 (지역×콘텐츠타입) 조합당 수십~수백 건까지 나오는 경우가 있어
+        // 1페이지 50건 으로 잘라내면 "제공량의 극히 일부" 만 보이는 문제가 발생.
+        // totalCount 기반으로 전체 페이지를 순회해 누적 수집한 뒤 어댑터 캐시에 저장한다.
+        List<PetFriendlyPoi> items = fetchAllPages(areaBasedUrl, Map.of(
                 "areaCode", nullSafe(areaCode),
                 "contentTypeId", nullSafe(contentTypeId),
                 "arrange", "Q"
@@ -162,7 +168,7 @@ public class VisitKoreaPetHttpClient implements PetFriendlyPoiPort {
     // -----------------------------
 
     private List<PetFriendlyPoi> callListApi(String baseUrl, Map<String, String> extraParams) {
-        String url = buildUrl(baseUrl, extraParams);
+        String url = buildUrl(baseUrl, extraParams, MAX_PAGE_SIZE, 1);
         VisitKoreaPetResponse parsed = fetchAndParse(url, baseUrl);
         if (parsed == null) return List.of();
 
@@ -174,10 +180,41 @@ public class VisitKoreaPetHttpClient implements PetFriendlyPoiPort {
     }
 
     /**
+     * totalCount 를 보고 전체 페이지를 순회하며 누적 수집.
+     * <p>KTO 쿼터/응답시간을 고려해 {@link #HARD_ITEM_CAP} 건을 상한으로 삼는다(사실상 도달 불가).
+     */
+    private List<PetFriendlyPoi> fetchAllPages(String baseUrl, Map<String, String> extraParams) {
+        List<PetFriendlyPoi> all = new ArrayList<>();
+        int pageNo = 1;
+        int totalCount = -1;
+        while (true) {
+            String url = buildUrl(baseUrl, extraParams, MAX_PAGE_SIZE, pageNo);
+            VisitKoreaPetResponse parsed = fetchAndParse(url, baseUrl);
+            if (parsed == null) break;
+            VisitKoreaPetResponse.Body body = parsed.getResponse().getBody();
+            if (totalCount < 0 && body.getTotalCount() != null) {
+                totalCount = body.getTotalCount();
+            }
+            List<VisitKoreaPetResponse.Item> page = body.getItems().getItem();
+            if (page == null || page.isEmpty()) break;
+            for (VisitKoreaPetResponse.Item i : page) {
+                all.add(toDomain(i));
+                if (all.size() >= HARD_ITEM_CAP) break;
+            }
+            if (all.size() >= HARD_ITEM_CAP) break;
+            if (page.size() < MAX_PAGE_SIZE) break; // 마지막 페이지
+            if (totalCount >= 0 && all.size() >= totalCount) break;
+            pageNo++;
+            if (pageNo > 50) break; // 안전장치: 50 페이지(≈5000건) 이상은 돌지 않음.
+        }
+        return Collections.unmodifiableList(all);
+    }
+
+    /**
      * detailPetTour2 응답에서 반려동물 정책을 추출해 (라벨 맵 + acmpyTypeCd) 로 반환.
      */
     private PetDetailPacket callPetDetailApi(String baseUrl, Map<String, String> extraParams) {
-        String url = buildUrl(baseUrl, extraParams);
+        String url = buildUrl(baseUrl, extraParams, MAX_PAGE_SIZE, 1);
         VisitKoreaPetResponse parsed = fetchAndParse(url, baseUrl);
         if (parsed == null) return PetDetailPacket.EMPTY;
 
@@ -207,15 +244,15 @@ public class VisitKoreaPetHttpClient implements PetFriendlyPoiPort {
         acc.merge(label, v, (a, b) -> a.contains(b) ? a : a + " / " + b);
     }
 
-    private String buildUrl(String baseUrl, Map<String, String> extraParams) {
+    private String buildUrl(String baseUrl, Map<String, String> extraParams, int numOfRows, int pageNo) {
         StringBuilder url = new StringBuilder(baseUrl);
         url.append(baseUrl.contains("?") ? "&" : "?")
                 .append("serviceKey=").append(serviceKey)
                 .append("&_type=json")
                 .append("&MobileOS=ETC")
                 .append("&MobileApp=touraz-dvdholic")
-                .append("&numOfRows=").append(MAX_PAGE_SIZE)
-                .append("&pageNo=1");
+                .append("&numOfRows=").append(numOfRows)
+                .append("&pageNo=").append(Math.max(1, pageNo));
         for (Map.Entry<String, String> e : extraParams.entrySet()) {
             if (e.getValue() == null || e.getValue().isBlank()) continue;
             url.append("&").append(e.getKey()).append("=")

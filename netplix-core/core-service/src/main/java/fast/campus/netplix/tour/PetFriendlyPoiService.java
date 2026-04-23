@@ -16,8 +16,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PetFriendlyPoiService implements GetPetFriendlyPoiUseCase {
 
-    private static final int DEFAULT_LIMIT = 12;
-    private static final int MAX_LIMIT = 50;
+    // limit <= 0 이면 어댑터가 모은 전체 건수를 그대로 반환(상한 없음).
+    // 호출자가 양수를 주면 그 값으로 잘라 반환.
+    private static final int DEFAULT_LIMIT = Integer.MAX_VALUE;
 
     private final PetFriendlyPoiPort port;
 
@@ -49,6 +50,6 @@ public class PetFriendlyPoiService implements GetPetFriendlyPoiUseCase {
 
     private int sanitize(int limit) {
         if (limit <= 0) return DEFAULT_LIMIT;
-        return Math.min(limit, MAX_LIMIT);
+        return limit;
     }
 }

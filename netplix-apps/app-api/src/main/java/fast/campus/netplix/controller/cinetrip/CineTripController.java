@@ -181,12 +181,13 @@ public class CineTripController {
     /**
      * CineTrip 상세 모달용 "이 영화 배경지에서 반려동물과 함께 갈 수 있는 곳" 묶음 조회.
      * 관광지/문화시설/레포츠/숙박/쇼핑/음식점 6종을 각 {@code perBucket} 개씩 반환.
+     * {@code perBucket <= 0} 이면 버킷당 제한 없이 KTO 가 제공하는 전체 건수를 반환.
      * KorPetTourService 미설정 시 빈 맵.
      */
     @GetMapping("/region/{areaCode}/pet-friendly")
     public NetplixApiResponse<Map<String, List<PetFriendlyPoiResponse>>> petFriendlyByRegion(
             @PathVariable String areaCode,
-            @RequestParam(defaultValue = "5") int perBucket) {
+            @RequestParam(defaultValue = "0") int perBucket) {
         Map<String, List<PetFriendlyPoiResponse>> result = new LinkedHashMap<>();
         if (!petFriendlyPoiUseCase.isConfigured()) {
             PET_BUCKETS.keySet().forEach(k -> result.put(k, List.of()));

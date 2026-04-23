@@ -66,8 +66,9 @@ export default function PetFriendlySpotsStrip({ areaCode, regionLabel = '' }) {
     (async () => {
       setLoading(true);
       try {
+        // perBucket 미지정 → 백엔드가 버킷별 전체 건수를 반환.
         const res = await axios.get(
-          `/api/v1/cine-trip/region/${encodeURIComponent(areaCode)}/pet-friendly?perBucket=6`
+          `/api/v1/cine-trip/region/${encodeURIComponent(areaCode)}/pet-friendly`
         );
         const payload = res?.data?.data ?? {};
         if (alive) setBuckets(payload || {});
@@ -121,6 +122,22 @@ export default function PetFriendlySpotsStrip({ areaCode, regionLabel = '' }) {
           한국관광공사 반려동물 동반여행 정보
         </span>
       </div>
+
+      {!loading && totalCount > 0 && (
+        <div
+          style={{
+            textAlign: 'center',
+            marginBottom: 10,
+            fontSize: 14,
+            fontWeight: 700,
+            color: '#ef4444',
+            letterSpacing: '-0.01em',
+          }}
+          aria-live="polite"
+        >
+          {`총 ${totalCount}편`}
+        </div>
+      )}
 
       {/* 탭 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
