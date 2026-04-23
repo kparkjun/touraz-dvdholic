@@ -480,6 +480,58 @@ function DashboardContent() {
     }
   };
 
+  // "사장님! 아무거나 추천해주세요" 전용: DVD + 영화(트렌딩) 를 병렬로 받아
+  // 번갈아 섞어 배치한 혼합 결과를 노출한다. 중복(movieName)은 제거.
+  const fetchOwnerRecommendMixed = async (query) => {
+    if (!query || !query.trim()) return;
+    setOwnerLoading(true);
+    setOwnerResults([]);
+    setOwnerResultsExpanded(false);
+    try {
+      const base = getApiBaseUrl();
+      const baseUrl = base ? base.replace(/\/$/, "") : "";
+      const makeUrl = (ct) => {
+        const p = new URLSearchParams({ q: query.trim(), contentType: ct, limit: "10" });
+        return `${baseUrl}/api/v1/movie/recommend/owner?${p}`;
+      };
+      const safeFetch = (url) =>
+        fetch(url, { method: "GET", headers: { "Content-Type": "application/json" } })
+          .then((r) => r.json())
+          .catch(() => null);
+      const [dvdJson, movieJson] = await Promise.all([
+        safeFetch(makeUrl("dvd")),
+        safeFetch(makeUrl("movie")),
+      ]);
+      const dvdList = (dvdJson?.success && Array.isArray(dvdJson?.data)) ? dvdJson.data : [];
+      const movieList = (movieJson?.success && Array.isArray(movieJson?.data)) ? movieJson.data : [];
+      const movieListTagged = movieList.map((item) => {
+        const m = item.movie || item;
+        if (m && !m.contentType) m.contentType = "movie";
+        return item;
+      });
+      const interleaved = [];
+      const maxLen = Math.max(dvdList.length, movieListTagged.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (i < dvdList.length) interleaved.push(dvdList[i]);
+        if (i < movieListTagged.length) interleaved.push(movieListTagged[i]);
+      }
+      const seen = new Set();
+      const deduped = interleaved.filter((item) => {
+        const name = (item?.movie || item)?.movieName;
+        if (!name) return false;
+        if (seen.has(name)) return false;
+        seen.add(name);
+        return true;
+      });
+      setOwnerResults(deduped);
+      try { sessionStorage.setItem("ds_owner", JSON.stringify({ results: deduped, expanded: false })); } catch {}
+    } catch (e) {
+      setOwnerResults([]);
+    } finally {
+      setOwnerLoading(false);
+    }
+  };
+
   const categoriesDataRef = useRef(categoriesData);
   categoriesDataRef.current = categoriesData;
 
@@ -1549,7 +1601,7 @@ function DashboardContent() {
                 className="owner-rec-btn"
                 onClick={() => {
                   const randomPreset = OWNER_PRESETS[Math.floor(Math.random() * OWNER_PRESETS.length)];
-                  if (!ownerLoading) fetchOwnerRecommend(randomPreset);
+                  if (!ownerLoading) fetchOwnerRecommendMixed(randomPreset);
                 }}
                 disabled={ownerLoading}
               >
