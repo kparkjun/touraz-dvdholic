@@ -1572,37 +1572,32 @@ function DashboardContent() {
               {/* 스와이프 중 오른쪽 끝의 '+N편 더보기' 칸을 없애고 ownerResults 전체를 그대로 가로 스크롤 */}
               <div className="dashboard-scroll-row" style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px", WebkitOverflowScrolling: "touch", flexWrap: "nowrap" }}>
                 {ownerResults.map((item, idx) => {
-                    const m = item.movie || item;
-                    const reason = item.reason || "";
-                    const ct = m.contentType || "dvd";
-                    return (
-                      <div
-                        key={`owner-${m.movieName}-${idx}`}
-                        style={{ flex: "0 0 auto", width: "140px", cursor: "pointer", textAlign: "center" }}
-                        onClick={() => router.push(`/dashboard/images?movieName=${encodeURIComponent(m.movieName)}&contentType=${ct}`)}
-                      >
-                        <div style={{ position: "relative" }}>
-                          {getPosterPath(m) ? (
-                            <img
-                              src={getPosterPath(m).startsWith("http") ? getPosterPath(m) : `https://image.tmdb.org/t/p/w300${getPosterPath(m)}`}
-                              alt={getMovieTitle(m)}
-                              style={{ width: "100%", borderRadius: "10px", marginBottom: "6px", boxShadow: "0 4px 12px rgba(255,107,53,0.2)" }}
-                            />
-                          ) : (
-                            <div style={{
-                              width: "100%", paddingTop: "150%", borderRadius: "10px",
-                              background: "linear-gradient(135deg, rgba(255,107,53,0.15), rgba(247,201,72,0.15))",
-                              marginBottom: "6px",
-                            }}>
-                              <span style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", fontSize: "12px", color: palette.textMuted }}>
-                                No Image
-                              </span>
-                            </div>
-                          )}
-                          {isNewItem(m) && <NewBadge />}
-                          <ContentBadge contentType={ct} />
-                        </div>
-                        <div style={{ fontSize: "12px", color: palette.text, fontWeight: 600, lineHeight: 1.3, marginBottom: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  const m = item.movie || item;
+                  const reason = item.reason || "";
+                  const ct = m.contentType || "dvd";
+                  const posterPath = getPosterPath(m);
+                  const posterSrc = posterPath
+                    ? (posterPath.startsWith("http") ? posterPath : `https://image.tmdb.org/t/p/w342${posterPath}`)
+                    : "/no-poster-placeholder.png";
+                  return (
+                    <div
+                      key={`owner-${m.movieName}-${idx}`}
+                      className="dash-card"
+                      style={{ background: palette.panel, cursor: "pointer", textAlign: "center" }}
+                      onClick={() => router.push(`/dashboard/images?movieName=${encodeURIComponent(m.movieName)}&contentType=${ct}`)}
+                    >
+                      <div style={{ position: "relative" }}>
+                        <img
+                          src={posterSrc}
+                          alt={getMovieTitle(m)}
+                          draggable={false}
+                          className="dash-card-img"
+                        />
+                        {isNewItem(m) && <NewBadge />}
+                        <ContentBadge contentType={ct} />
+                      </div>
+                      <div style={{ padding: "6px 8px 10px" }}>
+                        <div style={{ fontSize: "13px", color: palette.text, fontWeight: 600, lineHeight: 1.3, marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {getMovieTitle(m)}
                         </div>
                         {reason && (
@@ -1610,12 +1605,13 @@ function DashboardContent() {
                             fontSize: "10px", color: "#f7c948", lineHeight: 1.3, overflow: "hidden",
                             display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", fontStyle: "italic",
                           }}>
-                            "{reason}"
+                            &ldquo;{reason}&rdquo;
                           </div>
                         )}
                       </div>
-                    );
-                  })}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
