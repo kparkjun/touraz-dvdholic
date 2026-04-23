@@ -121,3 +121,9 @@ heroku_logs.txt
 response*.txt
 r[0-9].txt
 ct_curate.txt
+
+# curl 디버깅용 API 응답 덤프 (절대 커밋 금지)
+curate_full.json
+pet_full.json
+photos_full.json
+*_full.json
