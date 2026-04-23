@@ -77,15 +77,36 @@ public class DvdStoreService implements DvdStoreUseCase {
 
     @Override
     public String loadFromCsvContent(String csvContent) {
+        StringBuilder diag = new StringBuilder();
+        Map<String, DvdStore> dedup = parseDvdStoresFromCsv(csvContent, diag);
+        if (dedup == null) {
+            return "파싱 실패: " + diag;
+        }
+        List<DvdStore> stores = new ArrayList<>(dedup.values());
+        if (stores.isEmpty()) {
+            return "파싱 결과 0건. " + diag;
+        }
+        dvdStorePort.deleteAll();
+        dvdStorePort.saveAll(stores);
+        return "적재 완료: " + stores.size() + "건. [" + diag + "]";
+    }
+
+    /**
+     * localdata.go.kr CSV 본문을 파싱해 {@link DvdStore} 맵(관리번호 기준 dedup)으로 변환한다.
+     * 공통 스키마(문화체육 인허가)라서 비디오물감상실업/비디오물시청제공업 모두 같은 파싱 경로를 공유한다.
+     * 실패 시 {@code null} 을 반환한다.
+     */
+    private Map<String, DvdStore> parseDvdStoresFromCsv(String csvContent, StringBuilder diag) {
+        if (csvContent == null) return null;
         if (csvContent.startsWith("\uFEFF")) csvContent = csvContent.substring(1);
         csvContent = csvContent.replace("\r\n", "\n").replace("\r", "\n");
         String[] allLines = csvContent.split("\n", -1);
 
-        StringBuilder diag = new StringBuilder();
         diag.append("lines=").append(allLines.length);
 
         if (allLines.length < 2) {
-            return "줄 수 부족: " + allLines.length;
+            diag.append(", 줄 수 부족");
+            return null;
         }
 
         String[] headers = parseCsvLine(allLines[0]);
@@ -217,67 +238,94 @@ public class DvdStoreService implements DvdStoreUseCase {
         diag.append(", err=").append(errorLines);
         diag.append(", dedup=").append(dedup.size());
 
-        List<DvdStore> stores = new ArrayList<>(dedup.values());
-        if (stores.isEmpty()) {
-            return "파싱 결과 0건. " + diag;
-        }
-
-        dvdStorePort.deleteAll();
-        dvdStorePort.saveAll(stores);
-        return "적재 완료: " + stores.size() + "건. [" + diag + "]";
+        return dedup;
     }
 
-    private static final String CSV_ZIP_URL =
-            "http://www.localdata.go.kr/datafile/each/03_10_02_P_CSV.zip";
+    /**
+     * 소비자 접점이 있는 비디오물 업종 CSV URL 들.
+     * <ul>
+     *   <li>{@code 03_10_01_P_CSV.zip} — <b>비디오물감상실업</b> (DVD 방 / 비디오 감상실)</li>
+     *   <li>{@code 03_10_03_P_CSV.zip} — <b>비디오물시청제공업</b> (대여·판매 소매점)</li>
+     * </ul>
+     * <p>
+     * 기존에는 {@code 03_10_02_P_CSV.zip} (비디오물배급업 = 도매/유통) 를 사용했지만
+     * 이는 일반 소비자가 방문해 DVD 를 구매·대여할 수 있는 매장이 아니어서 제외했다.
+     */
+    private static final String[] CSV_ZIP_URLS = new String[] {
+            "http://www.localdata.go.kr/datafile/each/03_10_01_P_CSV.zip",
+            "http://www.localdata.go.kr/datafile/each/03_10_03_P_CSV.zip"
+    };
 
     @Override
     public int refreshFromApi() {
-        log.info("[DVD-STORE] === 공공데이터 CSV 자동 갱신 시작 ===");
+        log.info("[DVD-STORE] === 공공데이터 CSV 자동 갱신 시작 (감상실+시청제공) ===");
         try {
             HttpClient httpClient = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(30))
                     .followRedirects(HttpClient.Redirect.NORMAL)
                     .build();
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(CSV_ZIP_URL))
-                    .GET()
-                    .timeout(Duration.ofSeconds(120))
-                    .build();
+            Map<String, DvdStore> merged = new LinkedHashMap<>();
+            int parsedUrls = 0;
+            for (String url : CSV_ZIP_URLS) {
+                Map<String, DvdStore> partial = fetchAndParse(httpClient, url);
+                if (partial == null || partial.isEmpty()) {
+                    log.warn("[DVD-STORE] 개별 파일 파싱 결과 0건 또는 실패: {}", url);
+                    continue;
+                }
+                parsedUrls++;
+                merged.putAll(partial);
+                log.info("[DVD-STORE] 누적 병합: +{} -> total {}", partial.size(), merged.size());
+            }
 
-            HttpResponse<byte[]> response = httpClient.send(request,
-                    HttpResponse.BodyHandlers.ofByteArray());
-
-            if (response.statusCode() != 200) {
-                log.error("[DVD-STORE] ZIP 다운로드 실패: HTTP {}", response.statusCode());
+            if (parsedUrls == 0) {
+                log.error("[DVD-STORE] 모든 CSV 소스 수집 실패. 기존 데이터 유지");
                 return 0;
             }
 
-            byte[] zipBytes = response.body();
-            log.info("[DVD-STORE] ZIP 다운로드 완료: {}KB", zipBytes.length / 1024);
+            List<DvdStore> stores = new ArrayList<>(merged.values());
+            log.info("[DVD-STORE] 최종 병합 건수: {} (DB 교체 진행)", stores.size());
 
-            String csvContent = extractCsvFromZip(zipBytes);
-            if (csvContent == null || csvContent.isBlank()) {
-                log.error("[DVD-STORE] ZIP에서 CSV 추출 실패");
-                return 0;
-            }
-
-            log.info("[DVD-STORE] CSV 추출 완료: {}자, 줄 수 약 {}",
-                    csvContent.length(), csvContent.chars().filter(c -> c == '\n').count());
-
-            String result = loadFromCsvContent(csvContent);
-            log.info("[DVD-STORE] === 갱신 결과: {} ===", result);
-
-            if (result.startsWith("적재 완료:")) {
-                try {
-                    String countPart = result.substring("적재 완료: ".length());
-                    return Integer.parseInt(countPart.substring(0, countPart.indexOf("건")).trim());
-                } catch (Exception ignored) {}
-            }
-            return 0;
+            dvdStorePort.deleteAll();
+            dvdStorePort.saveAll(stores);
+            log.info("[DVD-STORE] === 갱신 완료: {} 건 ===", stores.size());
+            return stores.size();
         } catch (Exception e) {
             log.error("[DVD-STORE] CSV 갱신 실패: {}", e.getMessage(), e);
             return 0;
+        }
+    }
+
+    private Map<String, DvdStore> fetchAndParse(HttpClient httpClient, String url) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .GET()
+                    .timeout(Duration.ofSeconds(120))
+                    .build();
+            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            if (response.statusCode() != 200) {
+                log.error("[DVD-STORE] ZIP 다운로드 실패({}): HTTP {}", url, response.statusCode());
+                return null;
+            }
+            byte[] zipBytes = response.body();
+            log.info("[DVD-STORE] ZIP 다운로드 완료({}): {}KB", url, zipBytes.length / 1024);
+
+            String csvContent = extractCsvFromZip(zipBytes);
+            if (csvContent == null || csvContent.isBlank()) {
+                log.error("[DVD-STORE] ZIP에서 CSV 추출 실패: {}", url);
+                return null;
+            }
+            log.info("[DVD-STORE] CSV 추출 완료({}): {}자, 줄수≈{}",
+                    url, csvContent.length(), csvContent.chars().filter(c -> c == '\n').count());
+
+            StringBuilder diag = new StringBuilder();
+            Map<String, DvdStore> dedup = parseDvdStoresFromCsv(csvContent, diag);
+            log.info("[DVD-STORE] 파싱 결과({}): {}", url, diag);
+            return dedup;
+        } catch (Exception e) {
+            log.error("[DVD-STORE] fetch/parse 실패({}): {}", url, e.getMessage(), e);
+            return null;
         }
     }
 

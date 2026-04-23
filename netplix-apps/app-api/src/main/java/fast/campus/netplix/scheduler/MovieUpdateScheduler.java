@@ -52,8 +52,9 @@ public class MovieUpdateScheduler {
     public static Integer getLastDvdStoreCount() { return lastDvdStoreCount; }
 
     /**
-     * DVD매장(비디오물배급업) 공공데이터 자동 갱신 - 매월 1일 09:00 (KST) = UTC 00:00
-     * localdata.go.kr API에서 최신 데이터를 가져와 DB 교체
+     * DVD매장(비디오물감상실업 + 비디오물시청제공업) 공공데이터 자동 갱신 - 매월 1일 09:00 (KST) = UTC 00:00
+     * localdata.go.kr API에서 최신 데이터를 가져와 DB 교체. 소비자가 실제 방문해
+     * DVD 를 감상·대여·구매할 수 있는 업종으로 한정한다.
      */
     @Scheduled(cron = "0 0 0 1 * *")
     public void refreshDvdStores() {
@@ -72,7 +73,7 @@ public class MovieUpdateScheduler {
                     String dateStr = formatKstDate();
                     notificationUseCase.sendBatchUpdateNotification(
                             "DVD매장 데이터 갱신",
-                            dateStr + " 전국 비디오물배급업 현황이 갱신되었습니다. (총 " + count + "곳)");
+                            dateStr + " 전국 DVD 감상·대여·판매점 현황이 갱신되었습니다. (총 " + count + "곳)");
                 } catch (Exception ex) {
                     log.warn("[DVD-STORE] 알림 발송 실패: {}", ex.getMessage());
                 }
