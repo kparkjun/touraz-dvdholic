@@ -84,9 +84,8 @@ button,
   gap: 24px;
   overflow-x: auto;
   overflow-y: hidden;
-  /* proximity 스냅: 드래그/관성 중엔 방해하지 않고 멈춘 뒤 살짝만 붙여줌 */
-  scroll-snap-type: x proximity;
-  scroll-padding-left: 4px;
+  /* 스냅 제거: 드래그/관성 중 브라우저가 스냅 포인트로 당겨 딸깍거리던 현상 제거 */
+  scroll-snap-type: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-overflow-scrolling: touch;
@@ -98,13 +97,22 @@ button,
   transform: translateZ(0);
   contain: layout paint;
 }
-.cinetrip-scroll-row > * {
-  scroll-snap-align: start;
-}
 .cinetrip-scroll-row img {
   -webkit-user-drag: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* ===== 스와이프 중 hover/pointer 토글 차단 =====
+ * 드래그/관성 구간에 커서가 카드들을 지나가며 onMouseEnter/Leave 가 연쇄 발화되면
+ * framer-motion 훅버 애니메이션(transform, box-shadow)이 카드마다 리페인트를 유발해
+ * "딱딱 끊기는" 느낌을 만든다. useDragScroll 이 레일에 .is-scrolling 을 부여하는 동안
+ * 자식의 pointer-events 를 잠시 꺼서 hover 전이를 막고, 표시는 그대로 유지한다.
+ */
+.cinetrip-scroll-row.is-scrolling > *,
+.js-drag-scroll.is-scrolling > *,
+.dashboard-scroll-row.is-scrolling > * {
+  pointer-events: none;
 }
 
 /* ===== 공용 드래그 스크롤 레일 (useDragScrollAll 이 자동 바인딩) ===== */

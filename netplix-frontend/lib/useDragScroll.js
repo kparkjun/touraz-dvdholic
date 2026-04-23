@@ -57,11 +57,18 @@ export default function useDragScrollAll(containerRef) {
         pendingTarget: null, // rAF 에서 반영할 목표 scrollLeft
       };
 
+      // 스와이프 중 자식 hover 이벤트를 막아 리페인트 폭주 방지용 클래스 토글
+      const setScrolling = (on) => {
+        if (on) el.classList.add("is-scrolling");
+        else el.classList.remove("is-scrolling");
+      };
+
       const stopMomentum = () => {
         if (s.rafId) {
           cancelAnimationFrame(s.rafId);
           s.rafId = null;
         }
+        setScrolling(false);
       };
 
       // rAF 에서 pendingTarget 이 있으면 실제 scrollLeft 반영
@@ -81,6 +88,7 @@ export default function useDragScrollAll(containerRef) {
       const momentum = () => {
         if (Math.abs(s.velX) < MOMENTUM_CUTOFF) {
           s.rafId = null;
+          setScrolling(false);
           return;
         }
         el.scrollLeft += s.velX;
@@ -114,6 +122,7 @@ export default function useDragScrollAll(containerRef) {
           s.dragging = true;
           try { el.setPointerCapture(s.pointerId); } catch {}
           el.style.cursor = "grabbing";
+          setScrolling(true);
           // 드래그 시작 시 rAF 플러싱 루프 가동
           if (!s.rafId) s.rafId = requestAnimationFrame(flushPending);
         }
@@ -153,7 +162,11 @@ export default function useDragScrollAll(containerRef) {
             if (Math.abs(s.velX) > MAX_VELOCITY_PX_PER_FRAME) {
               s.velX = s.velX > 0 ? MAX_VELOCITY_PX_PER_FRAME : -MAX_VELOCITY_PX_PER_FRAME;
             }
+            // 관성 구간 동안도 .is-scrolling 유지(자식 hover 차단)
+            setScrolling(true);
             s.rafId = requestAnimationFrame(momentum);
+          } else {
+            setScrolling(false);
           }
         }
       };
@@ -175,6 +188,7 @@ export default function useDragScrollAll(containerRef) {
       const wheelTick = () => {
         if (Math.abs(wheelVelX) < MOMENTUM_CUTOFF) {
           wheelRaf = null;
+          setScrolling(false);
           return;
         }
         el.scrollLeft += wheelVelX;
@@ -188,12 +202,11 @@ export default function useDragScrollAll(containerRef) {
         // 컨테이너가 실제로 가로 스크롤 가능한지 확인
         if (el.scrollWidth <= el.clientWidth + 1) return;
         e.preventDefault();
-        // 기존 관성과 합산
+        setScrolling(true);
         wheelVelX = wheelVelX * 0.6 + dominant * WHEEL_HORIZONTAL_RATIO * 0.4;
         if (Math.abs(wheelVelX) > MAX_VELOCITY_PX_PER_FRAME) {
           wheelVelX = wheelVelX > 0 ? MAX_VELOCITY_PX_PER_FRAME : -MAX_VELOCITY_PX_PER_FRAME;
         }
-        // 즉시 1프레임 반영
         el.scrollLeft += dominant * WHEEL_HORIZONTAL_RATIO * 0.5;
         if (!wheelRaf) wheelRaf = requestAnimationFrame(wheelTick);
       };
