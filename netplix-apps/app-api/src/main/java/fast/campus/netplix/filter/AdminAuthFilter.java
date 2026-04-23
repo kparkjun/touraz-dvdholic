@@ -28,11 +28,20 @@ public class AdminAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String uri = request.getRequestURI();
-        if (!uri.startsWith("/api/v1/admin/")) {
+        String method = request.getMethod();
+
+        // /api/v1/cine-trip/auto-map (POST) 는 경로상 /admin 이 아니지만 실질적으로
+        // 관리자 전용 기능(TMDB 자동 매핑). admin token 으로만 호출되므로
+        // AdminAuthFilter 가 검증하도록 포함한다. (status 폴링 GET 은 permitAll 이라 제외)
+        boolean isAdminPath = uri.startsWith("/api/v1/admin/");
+        boolean isAutoMapAdminPath =
+                "POST".equals(method) && "/api/v1/cine-trip/auto-map".equals(uri);
+
+        if (!isAdminPath && !isAutoMapAdminPath) {
             filterChain.doFilter(request, response);
             return;
         }
-        if ("/api/v1/admin/login".equals(uri) && "POST".equals(request.getMethod())) {
+        if ("/api/v1/admin/login".equals(uri) && "POST".equals(method)) {
             filterChain.doFilter(request, response);
             return;
         }
