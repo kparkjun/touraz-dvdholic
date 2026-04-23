@@ -18,12 +18,9 @@ function Main() {
     "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
   ];
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      router.replace("/dashboard");
-    }
-  }, [router]);
+  // 로그인 여부와 무관하게 메인(랜딩) 페이지를 항상 첫 화면으로 노출한다.
+  // 로그인된 사용자는 아래의 "둘러보기" 버튼을 통해 /dashboard 로 진입할 수 있고,
+  // 비로그인 사용자는 로그인/회원가입 버튼을 통해 진입할 수 있다.
 
   // Animated gradient background cycle
   useEffect(() => {
