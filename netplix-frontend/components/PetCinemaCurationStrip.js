@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-import { Clapperboard, Heart, ArrowRight } from 'lucide-react';
+import { Clapperboard, Heart, ExternalLink } from 'lucide-react';
 
 /**
  * 반려동물·동물·가족 테마 영화 큐레이션 스트립.
@@ -17,6 +16,11 @@ import { Clapperboard, Heart, ArrowRight } from 'lucide-react';
  * - 카드 클릭 시 기존 영화 이미지 페이지(`/dashboard/images`)로 이동해, 사용자의
  *   탐색 경로 안에서 자연스럽게 이어진다.
  */
+// 클릭 시 이동할 외부 정보 페이지(네이버 영화 검색). 쿼리는 title+연도로 구체화하여
+// 오작동 없이 정확한 상세 페이지가 상단에 뜨도록 한다.
+const buildNaverMovieUrl = (query) =>
+  `https://search.naver.com/search.naver?where=nexearch&query=${encodeURIComponent(query)}`;
+
 const PET_CINEMA_PICKS = [
   {
     title: '마음이',
@@ -26,6 +30,7 @@ const PET_CINEMA_PICKS = [
     tag: '반려견 · 한국',
     gradient: 'linear-gradient(135deg, #fbbf24 0%, #f97316 55%, #dc2626 100%)',
     accent: '#fef3c7',
+    searchQuery: '마음이 영화 2006',
   },
   {
     title: '각설탕',
@@ -35,6 +40,7 @@ const PET_CINEMA_PICKS = [
     tag: '가족 · 한국',
     gradient: 'linear-gradient(135deg, #0ea5e9 0%, #14b8a6 50%, #22c55e 100%)',
     accent: '#ccfbf1',
+    searchQuery: '각설탕 영화 2006',
   },
   {
     title: '마리 이야기',
@@ -44,6 +50,7 @@ const PET_CINEMA_PICKS = [
     tag: '애니 · 한국',
     gradient: 'linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f472b6 100%)',
     accent: '#fce7f3',
+    searchQuery: '마리이야기 애니메이션 2002',
   },
   {
     title: '하치 이야기',
@@ -53,6 +60,7 @@ const PET_CINEMA_PICKS = [
     tag: '실화 · 견공',
     gradient: 'linear-gradient(135deg, #1e3a8a 0%, #7c3aed 55%, #db2777 100%)',
     accent: '#e0e7ff',
+    searchQuery: '하치 이야기 영화 2009',
   },
   {
     title: '말리와 나',
@@ -62,6 +70,7 @@ const PET_CINEMA_PICKS = [
     tag: '가족 · 리트리버',
     gradient: 'linear-gradient(135deg, #f59e0b 0%, #10b981 50%, #0ea5e9 100%)',
     accent: '#d1fae5',
+    searchQuery: '말리와 나 영화 2008',
   },
   {
     title: '개들의 섬',
@@ -71,6 +80,7 @@ const PET_CINEMA_PICKS = [
     tag: '모험 · 애니',
     gradient: 'linear-gradient(135deg, #c2410c 0%, #a855f7 55%, #0284c7 100%)',
     accent: '#fed7aa',
+    searchQuery: '개들의 섬 영화 2018 웨스 앤더슨',
   },
 ];
 
@@ -169,18 +179,14 @@ export default function PetCinemaCurationStrip() {
 }
 
 function PetCinemaCard({ pick, index }) {
-  const router = useRouter();
-
-  const onClick = () => {
-    router.push(
-      `/dashboard/images?movieName=${encodeURIComponent(pick.title)}&contentType=movie`
-    );
-  };
+  const href = buildNaverMovieUrl(pick.searchQuery || `${pick.title} 영화`);
 
   return (
-    <motion.button
-      type="button"
-      onClick={onClick}
+    <motion.a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`${pick.title} 영화 정보 새 탭으로 보기`}
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.3) }}
@@ -191,6 +197,7 @@ function PetCinemaCard({ pick, index }) {
         padding: 0,
         borderRadius: 16,
         overflow: 'hidden',
+        textDecoration: 'none',
         border: 'none',
         cursor: 'pointer',
         background: pick.gradient,
@@ -305,9 +312,9 @@ function PetCinemaCard({ pick, index }) {
             backdropFilter: 'blur(4px)',
           }}
         >
-          영화 보러 가기 <ArrowRight size={11} />
+          영화 정보 보기 <ExternalLink size={11} />
         </div>
       </div>
-    </motion.button>
+    </motion.a>
   );
 }
