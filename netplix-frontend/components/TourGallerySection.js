@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "@/src/axiosConfig";
 import { useTranslation } from "react-i18next";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -29,12 +29,18 @@ export default function TourGallerySection({
   // keyword 가 비어 있어도 API 를 호출해 전체 갤러리 최신순을 노출.
   // 기본 false: 기존 접목 지점(영화·지역·매장)에서는 keyword 가 비면 섹션 자체를 숨김.
   allowEmpty = false,
+  // 무한 스크롤 모드. 초기 pageSize 만 그리고, 뷰포트 바닥에 도달하면 pageSize 씩 증가.
+  // 6,000장 규모 데이터에서 DOM 부담을 줄이기 위해 /photo-gallery 에서 켜 사용.
+  infinite = false,
+  pageSize = 60,
 }) {
   const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(pageSize);
+  const sentinelRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +58,9 @@ export default function TourGallerySection({
         const res = await axios.get(apiBase, { params });
         if (cancelled) return;
         const data = res?.data?.data ?? res?.data ?? [];
-        setItems(Array.isArray(data) ? data : []);
+        const arr = Array.isArray(data) ? data : [];
+        setItems(arr);
+        setVisibleCount(infinite ? Math.min(pageSize, arr.length) : arr.length);
       } catch (e) {
         if (!cancelled) {
           setErrored(true);
@@ -66,7 +74,28 @@ export default function TourGallerySection({
     return () => {
       cancelled = true;
     };
-  }, [keyword, limit, apiBase, allowEmpty]);
+  }, [keyword, limit, apiBase, allowEmpty, infinite, pageSize]);
+
+  // 무한 스크롤: 바닥 센티넬이 뷰포트에 들어오면 visibleCount 증가.
+  useEffect(() => {
+    if (!infinite) return undefined;
+    if (typeof window === "undefined") return undefined;
+    if (!sentinelRef.current) return undefined;
+    if (visibleCount >= items.length) return undefined;
+    const el = sentinelRef.current;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setVisibleCount((c) => Math.min(c + pageSize, items.length));
+          }
+        }
+      },
+      { rootMargin: "600px 0px 600px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [infinite, pageSize, items.length, visibleCount]);
 
   const handleClose = useCallback(() => setSelectedIndex(null), []);
   const handlePrev = useCallback(
@@ -134,7 +163,7 @@ export default function TourGallerySection({
                 </div>
               </div>
             ))
-          : items.map((item, index) => (
+          : items.slice(0, visibleCount).map((item, index) => (
               <button
                 type="button"
                 key={`${item.galContentId || index}`}
@@ -169,6 +198,24 @@ export default function TourGallerySection({
               </button>
             ))}
       </div>
+
+      {infinite && !loading && visibleCount < items.length && (
+        <div className="tg-more">
+          <div ref={sentinelRef} aria-hidden className="tg-sentinel" />
+          <button
+            type="button"
+            className="tg-more-btn"
+            onClick={() =>
+              setVisibleCount((c) => Math.min(c + pageSize, items.length))
+            }
+          >
+            {t("tourGallery.loadMore", {
+              shown: visibleCount,
+              total: items.length,
+            })}
+          </button>
+        </div>
+      )}
 
       {selectedIndex !== null && items[selectedIndex] && (
         <Lightbox
@@ -366,6 +413,30 @@ const cssBlock = `
 @keyframes tg-shine {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+.tg-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 4px;
+}
+.tg-sentinel { width: 1px; height: 1px; }
+.tg-more-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f1f1;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.tg-more-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .tg-lb-overlay {

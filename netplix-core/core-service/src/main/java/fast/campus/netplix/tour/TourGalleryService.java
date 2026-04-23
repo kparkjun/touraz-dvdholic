@@ -15,7 +15,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TourGalleryService implements GetTourGalleriesUseCase {
 
-    private static final int MAX_LIMIT = 200;
+    // PhotoGalleryService1 의 galleryList1 totalCount ≈ 6,100 장. 10,000 상한이면 넉넉.
+    private static final int MAX_LIMIT = 10_000;
 
     private final TourGalleryPort tourGalleryPort;
 
@@ -29,8 +30,12 @@ public class TourGalleryService implements GetTourGalleriesUseCase {
         return tourGalleryPort.fetchAll(sanitize(limit));
     }
 
+    /**
+     * limit <= 0 → "전체 반환" 의미로 해석 (포트 레벨에서도 limit<=0 이면 자르지 않음).
+     * 그 외에는 MAX_LIMIT 으로 상한만 맞춰준다.
+     */
     private int sanitize(int limit) {
-        if (limit <= 0) return MAX_LIMIT;
+        if (limit <= 0) return 0; // 전체 반환
         return Math.min(limit, MAX_LIMIT);
     }
 }

@@ -123,8 +123,10 @@ function PhotoGalleryInner() {
           keyword={keyword}
           title={sectionTitle}
           subtitle={t("tourGallery.poweredBy")}
-          limit={48}
+          limit={0}
           allowEmpty
+          infinite
+          pageSize={60}
         />
         {/* 섹션이 숨겨진(0건) 경우를 위한 빈 상태 안내 */}
         <NoResultsHint keyword={keyword} />

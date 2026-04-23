@@ -314,7 +314,8 @@
     "movieSection": "Real-life Scenery from this Movie",
     "regionSection": "Scenery of this Region",
     "dvdStoreSection": "Places to Visit Nearby",
-    "poweredBy": "Source: Korea Tourism Organization PhotoGalleryService1"
+    "poweredBy": "Source: Korea Tourism Organization PhotoGalleryService1",
+    "loadMore": "Load more ({{shown}} / {{total}})"
   },
   "photoGalleryPage": {
     "pageTitle": "Korea Photo Gallery",

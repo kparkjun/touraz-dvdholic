@@ -285,7 +285,8 @@
     "movieSection": "이 영화 배경이 된 풍경 사진",
     "regionSection": "이 지역의 관광 풍경",
     "dvdStoreSection": "이 동네 가볼 만한 풍경",
-    "poweredBy": "출처: 한국관광공사 PhotoGalleryService1"
+    "poweredBy": "출처: 한국관광공사 PhotoGalleryService1",
+    "loadMore": "더 보기 ({{shown}} / 총 {{total}}장)"
   },
   "photoGalleryPage": {
     "pageTitle": "관광사진 갤러리",

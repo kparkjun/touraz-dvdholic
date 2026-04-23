@@ -40,6 +40,11 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
     private static final int MAX_PAGE_SIZE = 200;
     private static final String ALL_KEY = "__ALL__";
     private static final int MAX_KEYWORD_CACHE = 64;
+    // 안전 상한 — 현재 galleryList1 totalCount ≈ 6,100 장. 50 페이지(= 10,000장) 가드로
+    // 공급자가 급격히 데이터를 늘려도 쿼터 폭주 방지.
+    private static final int MAX_PAGES_ALL = 50;
+    // 키워드 검색은 보통 훨씬 적음. 넉넉히 20 페이지(= 4,000장) 가드.
+    private static final int MAX_PAGES_KEYWORD = 20;
 
     private final HttpClient httpClient;
 
@@ -111,13 +116,13 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
     }
 
     private synchronized void refreshAll() {
-        List<TourGallery> photos = request(listUrl, Map.of());
+        List<TourGallery> photos = requestAllPages(listUrl, Map.of(), MAX_PAGES_ALL);
         cache.put(ALL_KEY, new CacheSnapshot(photos, Instant.now().toEpochMilli()));
         log.info("[GALLERY] 전체 캐시 갱신 - {} 건", photos.size());
     }
 
     private synchronized void refreshByKeyword(String keyword, String cacheKey) {
-        List<TourGallery> photos = request(searchUrl, Map.of("keyword", keyword));
+        List<TourGallery> photos = requestAllPages(searchUrl, Map.of("keyword", keyword), MAX_PAGES_KEYWORD);
         if (cache.size() >= MAX_KEYWORD_CACHE) {
             // 가장 오래된 항목 1개 제거 (근사치 LRU)
             cache.entrySet().stream()
@@ -129,7 +134,40 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
         log.info("[GALLERY] 키워드={} 캐시 갱신 - {} 건", keyword, photos.size());
     }
 
-    private List<TourGallery> request(String baseUrl, Map<String, String> extraParams) {
+    /**
+     * totalCount 기반으로 페이지를 전부 순회해 한 번에 적재한다.
+     * - 1페이지를 먼저 받아 totalCount 를 확인하고 남은 페이지를 순차 호출.
+     * - 응답이 이상하거나 중간 실패 시 지금까지 모은 것만 반환(복구 가능성 유지).
+     * - 일일 쿼터 1,000회 고려: 전체(~31페이지) + 키워드 수 개 수준 → 넉넉.
+     */
+    private List<TourGallery> requestAllPages(String baseUrl, Map<String, String> extraParams, int maxPages) {
+        PageResult first = requestPage(baseUrl, extraParams, 1);
+        if (first == null) return List.of();
+
+        List<TourGallery> acc = new ArrayList<>(first.items);
+        int totalCount = first.totalCount;
+        if (totalCount <= first.items.size()) {
+            return Collections.unmodifiableList(acc);
+        }
+
+        int totalPages = (int) Math.min(
+                maxPages,
+                (long) Math.ceil(totalCount / (double) MAX_PAGE_SIZE));
+
+        for (int page = 2; page <= totalPages; page++) {
+            PageResult pr = requestPage(baseUrl, extraParams, page);
+            if (pr == null || pr.items.isEmpty()) {
+                log.warn("[GALLERY] page={} 빈/실패 - 지금까지 {}건으로 마감", page, acc.size());
+                break;
+            }
+            acc.addAll(pr.items);
+        }
+        log.info("[GALLERY] 페이지 순회 완료 - totalCount={} 로드={} (maxPages={})",
+                totalCount, acc.size(), maxPages);
+        return Collections.unmodifiableList(acc);
+    }
+
+    private PageResult requestPage(String baseUrl, Map<String, String> extraParams, int pageNo) {
         StringBuilder sb = new StringBuilder(baseUrl);
         sb.append(baseUrl.contains("?") ? "&" : "?");
         sb.append("serviceKey=").append(serviceKey);
@@ -137,7 +175,7 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
         sb.append("&MobileOS=ETC");
         sb.append("&MobileApp=touraz-dvdholic");
         sb.append("&numOfRows=").append(MAX_PAGE_SIZE);
-        sb.append("&pageNo=1");
+        sb.append("&pageNo=").append(pageNo);
         extraParams.forEach((k, v) -> sb.append('&').append(k).append('=')
                 .append(URLEncoder.encode(v, StandardCharsets.UTF_8)));
 
@@ -147,21 +185,21 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
             headers.add(HttpHeaders.ACCEPT, "application/json");
             raw = httpClient.request(sb.toString(), HttpMethod.GET, headers, Map.of());
         } catch (Exception ex) {
-            log.error("[GALLERY] 호출 실패 err={}", ex.getMessage());
-            return List.of();
+            log.error("[GALLERY] 호출 실패 page={} err={}", pageNo, ex.getMessage());
+            return null;
         }
 
         if (raw == null || raw.isBlank()) {
-            log.warn("[GALLERY] 빈 응답");
-            return List.of();
+            log.warn("[GALLERY] 빈 응답 page={}", pageNo);
+            return null;
         }
 
         // 서비스 키 미승인/쿼터 초과 시 비-JSON (XML / "Forbidden") 응답이 올 수 있음
         String trimmed = raw.trim();
         if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
-            log.warn("[GALLERY] 비-JSON 응답 (미승인/쿼터 초과 가능): prefix={}",
-                    trimmed.substring(0, Math.min(80, trimmed.length())));
-            return List.of();
+            log.warn("[GALLERY] 비-JSON 응답 (미승인/쿼터 초과 가능) page={} prefix={}",
+                    pageNo, trimmed.substring(0, Math.min(80, trimmed.length())));
+            return null;
         }
 
         VisitKoreaGalleryResponse parsed;
@@ -169,22 +207,27 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
             String safe = trimmed.replace("\"items\":\"\"", "\"items\":null");
             parsed = ObjectMapperUtil.toObject(safe, VisitKoreaGalleryResponse.class);
         } catch (Exception ex) {
-            log.error("[GALLERY] 파싱 실패 err={}", ex.getMessage());
-            return List.of();
+            log.error("[GALLERY] 파싱 실패 page={} err={}", pageNo, ex.getMessage());
+            return null;
         }
 
         if (parsed == null || parsed.getResponse() == null
-                || parsed.getResponse().getBody() == null
-                || parsed.getResponse().getBody().getItems() == null
-                || parsed.getResponse().getBody().getItems().getItem() == null) {
-            return List.of();
+                || parsed.getResponse().getBody() == null) {
+            return new PageResult(List.of(), 0);
         }
 
-        List<TourGallery> list = parsed.getResponse().getBody().getItems().getItem().stream()
+        VisitKoreaGalleryResponse.Body body = parsed.getResponse().getBody();
+        int totalCount = body.getTotalCount() != null ? body.getTotalCount() : 0;
+
+        if (body.getItems() == null || body.getItems().getItem() == null) {
+            return new PageResult(List.of(), totalCount);
+        }
+
+        List<TourGallery> list = body.getItems().getItem().stream()
                 .filter(i -> i.getGalWebImageUrl() != null && !i.getGalWebImageUrl().isBlank())
                 .map(VisitKoreaGalleryHttpClient::toDomain)
                 .collect(Collectors.toList());
-        return Collections.unmodifiableList(new ArrayList<>(list));
+        return new PageResult(list, totalCount);
     }
 
     private static TourGallery toDomain(VisitKoreaGalleryResponse.Item i) {
@@ -223,4 +266,7 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
     private record CacheSnapshot(List<TourGallery> photos, long loadedAtEpochMs) {
         static CacheSnapshot empty() { return new CacheSnapshot(List.of(), 0L); }
     }
+
+    /** 단일 페이지 응답 묶음 (items + 서버 측 totalCount). */
+    private record PageResult(List<TourGallery> items, int totalCount) {}
 }
