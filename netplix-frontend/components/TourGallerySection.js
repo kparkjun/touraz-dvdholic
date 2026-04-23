@@ -26,6 +26,9 @@ export default function TourGallerySection({
   limit = 24,
   apiBase = "/api/v1/tour-gallery",
   accent = "#e50914", // netplix 레드 포인트
+  // keyword 가 비어 있어도 API 를 호출해 전체 갤러리 최신순을 노출.
+  // 기본 false: 기존 접목 지점(영화·지역·매장)에서는 keyword 가 비면 섹션 자체를 숨김.
+  allowEmpty = false,
 }) {
   const { t } = useTranslation();
   const [items, setItems] = useState([]);
@@ -36,7 +39,8 @@ export default function TourGallerySection({
   useEffect(() => {
     let cancelled = false;
     async function run() {
-      if (!keyword || !keyword.trim()) {
+      const hasKeyword = !!(keyword && keyword.trim());
+      if (!hasKeyword && !allowEmpty) {
         setItems([]);
         setLoading(false);
         return;
@@ -44,9 +48,8 @@ export default function TourGallerySection({
       try {
         setLoading(true);
         setErrored(false);
-        const res = await axios.get(apiBase, {
-          params: { q: keyword, limit },
-        });
+        const params = hasKeyword ? { q: keyword, limit } : { limit };
+        const res = await axios.get(apiBase, { params });
         if (cancelled) return;
         const data = res?.data?.data ?? res?.data ?? [];
         setItems(Array.isArray(data) ? data : []);
@@ -63,7 +66,7 @@ export default function TourGallerySection({
     return () => {
       cancelled = true;
     };
-  }, [keyword, limit, apiBase]);
+  }, [keyword, limit, apiBase, allowEmpty]);
 
   const handleClose = useCallback(() => setSelectedIndex(null), []);
   const handlePrev = useCallback(
@@ -101,8 +104,8 @@ export default function TourGallerySection({
 
   // 데이터가 없고 로딩/에러도 끝났다면 섹션 전체 숨김
   if (!loading && !errored && items.length === 0) return null;
-  // 로딩 중이지만 keyword 가 없거나 비어 있으면 숨김
-  if (!keyword || !keyword.trim()) return null;
+  // keyword 가 없는 경우: allowEmpty 모드가 아니면 숨김 (기존 접목 지점 호환 유지)
+  if ((!keyword || !keyword.trim()) && !allowEmpty) return null;
 
   return (
     <section className="tg-section" aria-label={title || t("tourGallery.defaultTitle")}>

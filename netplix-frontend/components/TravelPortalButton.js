@@ -39,6 +39,16 @@ const THEMES = {
     hoverGlow: '0 36px 80px -20px rgba(245, 158, 11, 0.6)',
     tagColor: '#fde68a',
   },
+  // 관광사진 갤러리 전용 — "폴라로이드/필름 · 사진첩" 무드: 로즈 → 앰버 → 라벤더
+  gallery: {
+    gradient: 'conic-gradient(from 0deg, #f472b6, #f59e0b, #a78bfa, #fb923c, #f472b6)',
+    iconBg: 'linear-gradient(135deg, #f472b6 0%, #f59e0b 55%, #a78bfa 100%)',
+    textGrad: 'linear-gradient(90deg, #fda4af 0%, #fcd34d 50%, #c4b5fd 100%)',
+    accentColor: '#fcd34d',
+    glow: '0 24px 64px -20px rgba(244, 114, 182, 0.55)',
+    hoverGlow: '0 36px 80px -20px rgba(167, 139, 250, 0.6)',
+    tagColor: '#fbcfe8',
+  },
 };
 
 /** CineTrip용 보딩패스 사이드 라인 장식. */

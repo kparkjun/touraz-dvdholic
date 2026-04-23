@@ -316,6 +316,19 @@
     "dvdStoreSection": "이 동네 가볼 만한 풍경",
     "poweredBy": "출처: 한국관광공사 PhotoGalleryService1"
   },
+  "photoGalleryPage": {
+    "pageTitle": "관광사진 갤러리",
+    "pageSubtitle": "한국관광공사가 큐레이션한 전국 풍경 사진첩. 지역을 고르거나 키워드로 바로 찾아보세요.",
+    "searchPlaceholder": "예: 부산, 제주, 한옥, 해변…",
+    "searchBtn": "검색",
+    "shortcutsLabel": "지역 바로가기",
+    "allRegions": "전체",
+    "resultsFor": "‘{{keyword}}’ 검색 결과",
+    "latest": "전국 최신 사진",
+    "empty": "아직 보여줄 사진이 없어요",
+    "emptyForKeyword": "‘{{keyword}}’ 관련 사진을 찾지 못했어요",
+    "emptyHint": "다른 키워드로 다시 시도해 보시거나, 잠시 후 다시 방문해 주세요."
+  },
   "admin": {
     "loginTitle": "관리자 로그인",
     "id": "아이디",

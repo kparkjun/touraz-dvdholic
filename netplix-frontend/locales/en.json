@@ -316,6 +316,19 @@
     "dvdStoreSection": "Places to Visit Nearby",
     "poweredBy": "Source: Korea Tourism Organization PhotoGalleryService1"
   },
+  "photoGalleryPage": {
+    "pageTitle": "Korea Photo Gallery",
+    "pageSubtitle": "Scenic photos of Korea curated by the Korea Tourism Organization. Pick a region or search by keyword.",
+    "searchPlaceholder": "Try: Busan, Jeju, Hanok, Beach…",
+    "searchBtn": "Search",
+    "shortcutsLabel": "Region shortcuts",
+    "allRegions": "All",
+    "resultsFor": "Results for ‘{{keyword}}’",
+    "latest": "Latest photos nationwide",
+    "empty": "No photos to show yet",
+    "emptyForKeyword": "No photos found for ‘{{keyword}}’",
+    "emptyHint": "Please try a different keyword, or check back again shortly."
+  },
   "admin": {
     "loginTitle": "Admin Login",
     "id": "ID",

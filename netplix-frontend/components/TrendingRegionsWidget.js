@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, TrendingUp, PawPrint, Plane, PlaneTakeoff } from 'lucide-react';
+import { Sparkles, TrendingUp, PawPrint, Plane, PlaneTakeoff, Camera } from 'lucide-react';
 import Link from 'next/link';
 import axios from '@/lib/axiosConfig';
 import TravelPortalButton from '@/components/TravelPortalButton';
@@ -322,6 +322,16 @@ export default function TrendingRegionsWidget({ limit = 5, defaultPeriod = 'toda
           title="코스로 떠나는 걷기여행"
           desc="코리아둘레길 284개 코스, 숲길·바닷길·마을길을 따라 산뜻하게 걸어봐요."
           cta="걷기여행 코스 둘러보기"
+          fullWidth
+        />
+        <TravelPortalButton
+          href="/photo-gallery"
+          tag="Korea Photo Gallery"
+          title="관광사진 갤러리"
+          desc="한국관광공사가 큐레이션한 전국 풍경 사진첩을 지역별로 둘러봐요."
+          cta="사진첩 열어보기"
+          Icon={Camera}
+          theme="gallery"
           fullWidth
         />
       </div>
