@@ -84,12 +84,19 @@ button,
   gap: 24px;
   overflow-x: auto;
   overflow-y: hidden;
+  /* proximity 스냅: 드래그/관성 중엔 방해하지 않고 멈춘 뒤 살짝만 붙여줌 */
   scroll-snap-type: x proximity;
+  scroll-padding-left: 4px;
   user-select: none;
   -webkit-user-select: none;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   padding-bottom: 4px;
   cursor: grab;
+  /* GPU 합성 레이어 + 렌더 경로 격리(스와이프 중 리페인트 감소) */
+  will-change: scroll-position;
+  transform: translateZ(0);
+  contain: layout paint;
 }
 .cinetrip-scroll-row > * {
   scroll-snap-align: start;
@@ -114,6 +121,10 @@ button,
   -webkit-user-select: none;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  /* GPU 합성 + 렌더 경로 격리 */
+  will-change: scroll-position;
+  transform: translateZ(0);
+  contain: layout paint;
 }
 .js-drag-scroll::-webkit-scrollbar {
   width: 0 !important;
