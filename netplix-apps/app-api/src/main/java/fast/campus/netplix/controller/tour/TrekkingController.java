@@ -102,19 +102,39 @@ public class TrekkingController {
         try {
             HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
             conn.setRequestMethod("GET");
+            conn.setInstanceFollowRedirects(true);
             conn.setConnectTimeout(5_000);
             conn.setReadTimeout(15_000);
-            conn.setRequestProperty("User-Agent", "touraz-dvdholic/1.0");
+            // 두루누비 WAF 가 기본/비표준 User-Agent 를 차단하므로 일반 브라우저처럼 보이게 요청
+            conn.setRequestProperty("User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                            + "Chrome/124.0.0.0 Safari/537.36");
+            conn.setRequestProperty("Accept", "application/gpx+xml, application/xml, text/xml, */*;q=0.8");
+            conn.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7");
+            conn.setRequestProperty("Referer", "https://www.durunubi.kr/");
+            conn.setRequestProperty("Cache-Control", "no-cache");
+
             int status = conn.getResponseCode();
             if (status / 100 != 2) {
                 conn.disconnect();
-                return ResponseEntity.status(status).build();
+                log.warn("[DURUNUBI-GPX] 업스트림 비정상 상태 status={} url={}", status, url);
+                return ResponseEntity.status(502).build();
             }
+
+            String upstreamCt = conn.getContentType();
             byte[] bytes;
             try (InputStream in = conn.getInputStream()) {
                 bytes = in.readAllBytes();
             } finally {
                 conn.disconnect();
+            }
+
+            // WAF 가 차단 시 Content-Type: text/html 로 짧은 HTML 을 내려주는 케이스 방어
+            boolean looksLikeGpx = bytes.length > 200 && startsWithGpx(bytes);
+            if (!looksLikeGpx) {
+                log.warn("[DURUNUBI-GPX] GPX 가 아닌 응답 감지 contentType={} size={} url={}",
+                        upstreamCt, bytes.length, url);
+                return ResponseEntity.status(502).build();
             }
 
             String safeBase = sanitizeFilename(name);
@@ -131,8 +151,19 @@ public class TrekkingController {
             return ResponseEntity.ok().headers(headers).body(bytes);
         } catch (Exception ex) {
             log.warn("[DURUNUBI-GPX] 프록시 실패 url={} err={}", url, ex.getMessage());
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(502).build();
         }
+    }
+
+    /**
+     * 응답 본문이 실제 GPX(XML) 로 시작하는지 헤더 바이트만 빠르게 스캔.
+     * WAF 차단 응답은 보통 {@code <br>} / {@code <html>} / {@code <center>} 로 시작한다.
+     */
+    private static boolean startsWithGpx(byte[] bytes) {
+        int n = Math.min(bytes.length, 512);
+        String head = new String(bytes, 0, n, StandardCharsets.UTF_8).trim().toLowerCase();
+        if (head.startsWith("\ufeff")) head = head.substring(1);
+        return head.startsWith("<?xml") || head.startsWith("<gpx");
     }
 
     private static String sanitizeFilename(String s) {
