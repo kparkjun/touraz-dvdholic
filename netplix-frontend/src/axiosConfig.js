@@ -25,9 +25,17 @@ axios.interceptors.request.use(
       full.includes("/like-count") ||
       full.includes("/unlike-count") ||
       full.includes("/meh-count");
+    // /api/v1/cine-trip/auto-map* 는 경로 prefix 가 /admin 은 아니지만 실질적으로
+    // 관리자 전용 기능(TMDB 자동 매핑 트리거/상태 폴링)이다. admin 로그인만 한 상태에서
+    // 일반 token 이 없으면 Authorization 헤더가 아예 안 붙어 401 이 되는 문제를 막기 위해
+    // adminToken 분기에 포함한다.
+    const isAdminEndpoint =
+      (full.includes("/api/v1/admin/") && !full.includes("/api/v1/admin/login")) ||
+      full.includes("/api/v1/cine-trip/auto-map");
+
     if (isPublicReadOnly) {
       delete config.headers.Authorization;
-    } else if (full.includes("/api/v1/admin/") && !full.includes("/api/v1/admin/login")) {
+    } else if (isAdminEndpoint) {
       const adminToken = localStorage.getItem("adminToken");
       if (adminToken) {
         config.headers.Authorization = `Bearer ${adminToken}`;
@@ -56,6 +64,7 @@ axios.interceptors.response.use(
       const url = error.config?.url || "";
       const noRedirectOn401 =
         url.includes("/api/v1/admin/") ||
+        url.includes("/api/v1/cine-trip/auto-map") ||
         url.includes("/api/v1/movie/search") || 
         url.includes("/api/v1/movie/playing/search") ||
         url.includes("/like-count") ||
