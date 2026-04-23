@@ -1564,17 +1564,14 @@ function DashboardContent() {
               {t("dashboard.ownerLoading")}
             </div>
           )}
-          {!ownerLoading && ownerResults.length > 0 && (() => {
-            const showMore = ownerResults.length > 10 && !ownerResultsExpanded;
-            const listToShow = showMore ? ownerResults.slice(0, 10) : ownerResults;
-            const restCount = ownerResults.length - 10;
-            return (
-              <div style={{ padding: "0 8px 12px" }}>
-                <div style={{ padding: "4px 10px 8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span style={{ color: "#f7c948", fontSize: "13px", fontWeight: 600 }}>🎬 {t("dashboard.ownerResult")}</span>
-                </div>
-                <div className="dashboard-scroll-row" style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px", WebkitOverflowScrolling: "touch", flexWrap: "nowrap" }}>
-                  {listToShow.map((item, idx) => {
+          {!ownerLoading && ownerResults.length > 0 && (
+            <div style={{ padding: "0 8px 12px" }}>
+              <div style={{ padding: "4px 10px 8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ color: "#f7c948", fontSize: "13px", fontWeight: 600 }}>🎬 {t("dashboard.ownerResult")}</span>
+              </div>
+              {/* 스와이프 중 오른쪽 끝의 '+N편 더보기' 칸을 없애고 ownerResults 전체를 그대로 가로 스크롤 */}
+              <div className="dashboard-scroll-row" style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px", WebkitOverflowScrolling: "touch", flexWrap: "nowrap" }}>
+                {ownerResults.map((item, idx) => {
                     const m = item.movie || item;
                     const reason = item.reason || "";
                     const ct = m.contentType || "dvd";
@@ -1619,18 +1616,9 @@ function DashboardContent() {
                       </div>
                     );
                   })}
-                  {showMore && (
-                    <div
-                      style={{ flex: "0 0 auto", width: "100px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-                      onClick={() => setOwnerResultsExpanded(true)}
-                    >
-                      <span style={{ color: "#f7c948", fontSize: "13px", fontWeight: 600 }}>{t("dashboard.ownerShowMore", { count: restCount })}</span>
-                    </div>
-                  )}
-                </div>
               </div>
-            );
-          })()}
+            </div>
+          )}
         </div>
 
         {/* Netflix 스타일 카테고리별 가로 스크롤 행 */}
