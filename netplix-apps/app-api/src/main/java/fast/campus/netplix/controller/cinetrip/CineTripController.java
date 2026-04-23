@@ -69,9 +69,12 @@ public class CineTripController {
         PET_BUCKETS = java.util.Collections.unmodifiableMap(m);
     }
 
+    /**
+     * limit 기본값 0 = 전체. 클라이언트가 명시적으로 양수를 주면 그만큼만 반환.
+     */
     @GetMapping("/curate")
     public NetplixApiResponse<List<CineTripResponse>> curate(
-            @RequestParam(defaultValue = "12") int limit) {
+            @RequestParam(defaultValue = "0") int limit) {
         List<CineTripItem> items = cineTripUseCase.curate(limit);
         return NetplixApiResponse.ok(items.stream().map(CineTripResponse::from).toList());
     }
@@ -79,7 +82,7 @@ public class CineTripController {
     @GetMapping("/region/{areaCode}")
     public NetplixApiResponse<List<CineTripResponse>> byRegion(
             @PathVariable String areaCode,
-            @RequestParam(defaultValue = "12") int limit) {
+            @RequestParam(defaultValue = "0") int limit) {
         List<CineTripItem> items = cineTripUseCase.curateByRegion(areaCode, limit);
         return NetplixApiResponse.ok(items.stream().map(CineTripResponse::from).toList());
     }

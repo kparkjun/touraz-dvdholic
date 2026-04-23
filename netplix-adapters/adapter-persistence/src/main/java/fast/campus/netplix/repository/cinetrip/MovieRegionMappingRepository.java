@@ -51,8 +51,8 @@ public class MovieRegionMappingRepository implements MovieRegionMappingPort {
     @Override
     @Transactional(readOnly = true)
     public List<MovieRegionMapping> findTopTrending(int limit) {
-        // 내부 상한 1000 (CineTripService 쪽 MAX_LIMIT 과 여유있게 정렬)
-        int safe = Math.max(1, Math.min(limit, 1000));
+        // 상한 없음. 호출자가 Integer.MAX_VALUE 를 넘기면 전체 매핑을 반환.
+        int safe = Math.max(1, limit);
         return jpa.findTopTrending(PageRequest.of(0, safe))
                 .stream().map(MovieRegionMappingEntity::toDomain).toList();
     }

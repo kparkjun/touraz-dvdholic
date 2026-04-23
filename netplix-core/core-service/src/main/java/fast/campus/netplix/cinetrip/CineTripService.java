@@ -24,11 +24,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CineTripService implements CineTripUseCase {
 
-    /**
-     * 큐레이션 결과 최대 개수. CSV 시드 고유 영화 수(≈234)를 넉넉히 커버하도록 500 으로 둔다.
-     * 프론트가 limit 미지정/0 이면 기본 12 로 클램프 (clampLimit 참고).
-     */
-    private static final int MAX_LIMIT = 500;
+    // 결과 개수 상한 없음. limit <= 0 이면 전체 반환 (clampLimit 참고).
 
     private final MovieRegionMappingPort mappingPort;
     private final PersistenceMoviePort moviePort;
@@ -42,7 +38,9 @@ public class CineTripService implements CineTripUseCase {
     @Cacheable(value = "cineTripCuration", key = "'default:' + #limit")
     public List<CineTripItem> curate(int limit) {
         int safe = clampLimit(limit);
-        List<MovieRegionMapping> top = mappingPort.findTopTrending(safe * 2);
+        // limit 이 전체(MAX_VALUE)면 곱셈 overflow 방지, 아니면 영화당 여러 지역 매핑을 고려해 3배수.
+        int queryLimit = (safe > Integer.MAX_VALUE / 3) ? Integer.MAX_VALUE : safe * 3;
+        List<MovieRegionMapping> top = mappingPort.findTopTrending(queryLimit);
         if (top.isEmpty()) return List.of();
 
         Map<String, List<MovieRegionMapping>> byMovie = groupByMovie(top);
@@ -273,8 +271,9 @@ public class CineTripService implements CineTripUseCase {
     }
 
     private int clampLimit(int limit) {
-        if (limit <= 0) return 12;
-        return Math.min(limit, MAX_LIMIT);
+        // limit <= 0 → 상한 없음(전체 반환).
+        if (limit <= 0) return Integer.MAX_VALUE;
+        return limit;
     }
 
     private Map<String, List<MovieRegionMapping>> groupByMovie(List<MovieRegionMapping> src) {
