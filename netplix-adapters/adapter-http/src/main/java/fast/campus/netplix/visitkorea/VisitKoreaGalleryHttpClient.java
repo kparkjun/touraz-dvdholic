@@ -189,12 +189,13 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
                 .append(URLEncoder.encode(v, StandardCharsets.UTF_8)));
 
         String raw;
+        String urlForLog = sb.toString().replaceAll("serviceKey=[^&]+", "serviceKey=***");
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.add(HttpHeaders.ACCEPT, "application/json");
             raw = httpClient.request(sb.toString(), HttpMethod.GET, headers, Map.of());
         } catch (Exception ex) {
-            log.error("[GALLERY] 호출 실패 page={} err={}", pageNo, ex.getMessage());
+            log.error("[GALLERY] 호출 실패 page={} url={} err={}", pageNo, urlForLog, ex.getMessage());
             return null;
         }
 
@@ -240,6 +241,11 @@ public class VisitKoreaGalleryHttpClient implements TourGalleryPort {
                 .filter(i -> i.getGalWebImageUrl() != null && !i.getGalWebImageUrl().isBlank())
                 .map(VisitKoreaGalleryHttpClient::toDomain)
                 .collect(Collectors.toList());
+        if (list.isEmpty() && totalCount == 0 && !extraParams.isEmpty()) {
+            // 키워드 검색이 0건일 때 실제 API 가 돌려준 raw 를 80자만 찍어 원인 추적
+            String preview = trimmed.length() > 240 ? trimmed.substring(0, 240) : trimmed;
+            log.warn("[GALLERY] 0건 응답 page={} url={} raw-prefix={}", pageNo, urlForLog, preview);
+        }
         return new PageResult(list, totalCount);
     }
 
