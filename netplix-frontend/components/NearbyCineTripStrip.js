@@ -9,6 +9,16 @@ import axios from '@/lib/axiosConfig';
 import { sigunToAreaCode, areaCodeToLabel } from '@/lib/regionMap';
 
 /**
+ * 영화명을 네이버 영화 검색 URL 로 변환.
+ * CineTrip 지역 매핑 DB 에는 있지만 영화 원본 DB(/api/v1/movie/{name}/detail) 에
+ * 없는 영화(예: 국제시장)를 클릭했을 때의 fallback 으로 사용.
+ */
+const buildNaverMovieUrl = (name) =>
+  `https://search.naver.com/search.naver?where=nexearch&query=${encodeURIComponent(
+    `${name} 영화`
+  )}`;
+
+/**
  * 두루누비 트레킹 코스 카드에서 펼쳐지는
  * "🎬 이 길의 영화 큐레이션" 가로 스트립.
  *
@@ -182,12 +192,44 @@ function MoviePosterCard({ item, index }) {
   const movie = item?.movie || {};
   const mapping = (item?.mappings || [])[0];
   const tagLabel = MAPPING_TYPE_LABEL[mapping?.mappingType] || '';
+  const [checking, setChecking] = useState(false);
 
-  const onClick = () => {
+  /**
+   * 1) `/api/v1/movie/{name}/detail` 로 영화 원본 DB 존재 여부 사전 확인
+   * 2) 있으면 기존처럼 /dashboard/images 로 라우팅
+   * 3) 없거나 실패 시 네이버 영화 검색 결과를 새 탭으로 띄움 → "영화 정보를
+   *    찾을 수 없습니다" 데드엔드 방지
+   */
+  const onClick = async (e) => {
     if (!movie.movieName) return;
-    router.push(
-      `/dashboard/images?movieName=${encodeURIComponent(movie.movieName)}&contentType=${encodeURIComponent(movie.contentType || 'movie')}`
-    );
+    if (checking) return;
+    e.preventDefault();
+    setChecking(true);
+
+    const name = movie.movieName;
+    const ct = movie.contentType || 'movie';
+    const internalUrl = `/dashboard/images?movieName=${encodeURIComponent(
+      name
+    )}&contentType=${encodeURIComponent(ct)}`;
+
+    try {
+      const res = await axios.get(
+        `/api/v1/movie/${encodeURIComponent(name)}/detail`,
+        { timeout: 4000 }
+      );
+      const data = res?.data?.data;
+      const hasDetail =
+        data && (data.movieName || data.id || data.tmdbId || data.posterPath);
+      if (hasDetail) {
+        router.push(internalUrl);
+      } else {
+        window.open(buildNaverMovieUrl(name), '_blank', 'noopener,noreferrer');
+      }
+    } catch {
+      window.open(buildNaverMovieUrl(name), '_blank', 'noopener,noreferrer');
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -197,7 +239,8 @@ function MoviePosterCard({ item, index }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.3) }}
-      whileHover={{ scale: 1.04, y: -3 }}
+      whileHover={{ scale: checking ? 1 : 1.04, y: checking ? 0 : -3 }}
+      disabled={checking}
       style={{
         flex: '0 0 auto',
         width: 130,
@@ -206,7 +249,9 @@ function MoviePosterCard({ item, index }) {
         overflow: 'hidden',
         border: '1px solid rgba(255,255,255,0.08)',
         background: '#0f0f0f',
-        cursor: 'pointer',
+        cursor: checking ? 'wait' : 'pointer',
+        opacity: checking ? 0.65 : 1,
+        transition: 'opacity 0.2s ease',
         display: 'flex',
         flexDirection: 'column',
         textAlign: 'left',
