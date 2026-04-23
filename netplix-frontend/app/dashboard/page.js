@@ -180,7 +180,8 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n?.language && String(i18n.language).startsWith('en');
 
   // 카카오 OAuth2 로그인 성공 후 리다이렉트 시 URL에 token이 있으면 저장하고 URL 정리
   useEffect(() => {
@@ -1641,10 +1642,27 @@ function DashboardContent() {
           const totalCount = catData?.totalCount;
           const currentCount = catMovies.length;
           if (catMovies.length === 0) return null;
+          // 백엔드가 반환하는 totalCount 가 있으면 그 수치를, 없으면 현재 로드된 개수를 표시.
+          const displayCount =
+            typeof totalCount === "number" && totalCount > 0 ? totalCount : currentCount;
           return (
             <div key={cat.id} style={{ marginBottom: "24px" }}>
               <h3 style={{ color: palette.text, fontSize: "18px", fontWeight: 700, marginBottom: "12px", textAlign: "center" }}>
                 {cat.title}
+                {displayCount > 0 && (
+                  <span
+                    style={{
+                      color: "#ef4444",
+                      fontWeight: 700,
+                      marginLeft: 8,
+                      fontSize: "15px",
+                      letterSpacing: "-0.01em",
+                    }}
+                    aria-label={isEn ? `total ${displayCount} titles` : `총 ${displayCount}편`}
+                  >
+                    {isEn ? `(total ${displayCount})` : `(총 ${displayCount}편)`}
+                  </span>
+                )}
               </h3>
               <div
                 className="dashboard-scroll-row"
