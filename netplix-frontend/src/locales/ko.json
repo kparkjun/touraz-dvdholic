@@ -460,6 +460,15 @@
     "empty": {
       "title": "조건에 맞는 오디오 가이드가 없어요",
       "sub": "검색어를 바꾸거나 다른 테마/지역을 눌러보세요."
+    },
+    "detail": {
+      "openAria": "상세 열기",
+      "script": "해설 스크립트",
+      "noAudio": "이 항목에는 오디오 파일이 제공되지 않아요.",
+      "audioErr": "오디오를 재생할 수 없어요. 원본 링크에서 열어보세요.",
+      "openAudio": "오디오 파일 열기",
+      "openGoogleMap": "구글 지도에서 보기",
+      "openKakaoMap": "카카오맵에서 보기"
     }
   },
   "nearbyAudioGuide": {

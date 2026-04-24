@@ -25,6 +25,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import axios from "@/src/axiosConfig";
+import AudioGuideDetailModal from "@/components/AudioGuideDetailModal";
 import { Headphones, MapPin, Play, Pause, Clock, ArrowRight, Globe2, Mic2 } from "lucide-react";
 
 export default function NearbyAudioGuideStrip({
@@ -44,6 +45,8 @@ export default function NearbyAudioGuideStrip({
   const [errored, setErrored] = useState(false);
   const [playingId, setPlayingId] = useState(null);
   const audioRef = useRef(null);
+  // 미니카드 클릭 시 열리는 상세 모달 대상
+  const [detailItem, setDetailItem] = useState(null);
 
   const lang = (i18n?.language || "ko").toLowerCase().startsWith("en") ? "en" : "ko";
   const useCoords = typeof lat === "number" && typeof lng === "number"
@@ -174,18 +177,43 @@ export default function NearbyAudioGuideStrip({
                 item={s}
                 playing={playingId === s.id}
                 onToggle={() => togglePlay(s)}
+                onOpen={() => setDetailItem(s)}
               />
             ))}
       </div>
+
+      {detailItem && (
+        <AudioGuideDetailModal
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+        />
+      )}
     </section>
   );
 }
 
-function AudioGuideMiniCard({ item, playing, onToggle }) {
+function AudioGuideMiniCard({ item, playing, onToggle, onOpen }) {
   const { t } = useTranslation();
   const hasAudio = !!item.audioUrl;
+  const handleOpen = (e) => {
+    e.preventDefault();
+    onOpen?.();
+  };
+  const onKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onOpen?.();
+    }
+  };
   return (
-    <article className="nag-card">
+    <article
+      className="nag-card"
+      role="button"
+      tabIndex={0}
+      onClick={handleOpen}
+      onKeyDown={onKeyDown}
+      aria-label={`${item.title || ""} ${t("audioGuide.detail.openAria", "상세 열기")}`}
+    >
       <div className="nag-img">
         {item.imageUrl ? (
           <img
@@ -211,7 +239,7 @@ function AudioGuideMiniCard({ item, playing, onToggle }) {
           <button
             type="button"
             className={`nag-play ${playing ? "nag-play-on" : ""}`}
-            onClick={onToggle}
+            onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
             aria-label={playing ? t("nearbyAudioGuide.pause") : t("nearbyAudioGuide.play")}
           >
             {playing ? <Pause size={18} /> : <Play size={18} />}
@@ -229,7 +257,7 @@ function AudioGuideMiniCard({ item, playing, onToggle }) {
         <div className="nag-meta-row">
           {item.playTimeText && (
             <span className="nag-meta">
-              <Clock size={11} /> {item.playTimeText}
+              <Clock size={11} /> {formatMiniPlay(item.playTimeText)}
             </span>
           )}
           {item.address && (
@@ -241,6 +269,19 @@ function AudioGuideMiniCard({ item, playing, onToggle }) {
       </div>
     </article>
   );
+}
+
+function formatMiniPlay(raw) {
+  if (!raw) return "";
+  if (/^\d+$/.test(String(raw))) {
+    const sec = parseInt(raw, 10);
+    if (Number.isFinite(sec) && sec > 0) {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m}:${String(s).padStart(2, "0")}`;
+    }
+  }
+  return String(raw);
 }
 
 const cssBlock = `
@@ -294,6 +335,12 @@ const cssBlock = `
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   display: flex; flex-direction: column;
+  cursor: pointer;
+  outline: none;
+}
+.nag-card:focus-visible {
+  border-color: #c4b5fd;
+  box-shadow: 0 0 0 3px rgba(167,139,250,0.4);
 }
 .nag-card:hover {
   transform: translateY(-2px);

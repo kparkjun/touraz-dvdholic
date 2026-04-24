@@ -29,6 +29,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import axios from "@/lib/axiosConfig";
+import AudioGuideDetailModal from "@/components/AudioGuideDetailModal";
 import {
   Headphones,
   Mic2,
@@ -103,6 +104,9 @@ function AudioGuidePageInner() {
   const [playDuration, setPlayDuration] = useState(0);
   const audioRef = useRef(null);
   const playingItemRef = useRef(null);
+
+  // 카드 클릭 시 열리는 상세 모달 대상
+  const [detailItem, setDetailItem] = useState(null);
 
   // URL 동기화 helper
   const syncUrl = useCallback((next) => {
@@ -452,6 +456,7 @@ function AudioGuidePageInner() {
               item={item}
               playing={playingId === item.id}
               onToggle={() => togglePlay(item)}
+              onOpen={() => setDetailItem(item)}
             />
           ))}
           {loading && Array.from({ length: 8 }).map((_, i) => (
@@ -533,15 +538,41 @@ function AudioGuidePageInner() {
           </div>
         </div>
       )}
+
+      {/* 카드 클릭 시 열리는 상세 모달 */}
+      {detailItem && (
+        <AudioGuideDetailModal
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+        />
+      )}
     </div>
   );
 }
 
-function AudioCard({ item, playing, onToggle }) {
+function AudioCard({ item, playing, onToggle, onOpen }) {
   const { t } = useTranslation();
   const hasAudio = !!item.audioUrl;
+  // 카드 전체는 버튼 역할(상세 모달 열기). 내부 재생 버튼 클릭은 버블링 차단.
+  const handleOpen = (e) => {
+    e.preventDefault();
+    onOpen?.();
+  };
+  const onKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onOpen?.();
+    }
+  };
   return (
-    <article className={`agp-card ${playing ? "agp-card-on" : ""}`}>
+    <article
+      className={`agp-card ${playing ? "agp-card-on" : ""}`}
+      role="button"
+      tabIndex={0}
+      onClick={handleOpen}
+      onKeyDown={onKeyDown}
+      aria-label={`${item.title} ${t("audioGuide.detail.openAria", "상세 열기")}`}
+    >
       <div className="agp-card-img">
         {item.imageUrl ? (
           <img
@@ -567,7 +598,7 @@ function AudioCard({ item, playing, onToggle }) {
           <button
             type="button"
             className={`agp-card-play ${playing ? "agp-card-play-on" : ""}`}
-            onClick={onToggle}
+            onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
             aria-label={playing ? t("nearbyAudioGuide.pause", "일시정지") : t("nearbyAudioGuide.play", "재생")}
           >
             {playing ? <Pause size={22} /> : <Play size={22} />}
@@ -583,7 +614,7 @@ function AudioCard({ item, playing, onToggle }) {
         <div className="agp-card-row">
           {item.playTimeText && (
             <span className="agp-card-meta">
-              <Clock size={12} /> {item.playTimeText}
+              <Clock size={12} /> {formatMiniTime(item.playTimeText)}
             </span>
           )}
           {item.address && (
@@ -774,6 +805,12 @@ const agpCss = `
   border-radius: 14px; overflow: hidden;
   display: flex; flex-direction: column;
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  cursor: pointer;
+  outline: none;
+}
+.agp-card:focus-visible {
+  border-color: #c4b5fd;
+  box-shadow: 0 0 0 3px rgba(167,139,250,0.4);
 }
 .agp-card:hover {
   transform: translateY(-2px);

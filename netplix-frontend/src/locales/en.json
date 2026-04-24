@@ -460,6 +460,15 @@
     "empty": {
       "title": "No audio guides match your filter",
       "sub": "Try another keyword, theme, or region."
+    },
+    "detail": {
+      "openAria": "Open details",
+      "script": "Narration script",
+      "noAudio": "No audio file provided for this item.",
+      "audioErr": "Unable to play audio. Try opening the original file.",
+      "openAudio": "Open audio file",
+      "openGoogleMap": "Open in Google Maps",
+      "openKakaoMap": "Open in Kakao Map"
     }
   },
   "nearbyAudioGuide": {
