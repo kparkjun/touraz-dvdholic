@@ -20,6 +20,7 @@ import { shareContent, shareResultMessage } from '@/lib/shareUtils';
 import PhotoGalleryStrip from '@/components/PhotoGalleryStrip';
 import TourGallerySection from '@/components/TourGallerySection';
 import NearbyCampingStrip from '@/components/NearbyCampingStrip';
+import NearbyWellnessStrip from '@/components/NearbyWellnessStrip';
 import ConcentrationForecastStrip from '@/components/ConcentrationForecastStrip';
 import EngTourSpotsStrip from '@/components/EngTourSpotsStrip';
 import TravelCourseModal from '@/components/TravelCourseModal';
@@ -1031,6 +1032,16 @@ function CineTripPageInner() {
             keyword={REGION_FILTERS.find((r) => r.areaCode === selectedAreaCode)?.label || ''}
             title={t('nearbyCamping.regionSection')}
             subtitle={t('nearbyCamping.poweredBy')}
+            limit={6}
+          />
+        )}
+
+        {/* 촬영지 답사 후 힐링 마무리 · 지역 기반 웰니스 스팟 */}
+        {selectedAreaCode && (
+          <NearbyWellnessStrip
+            keyword={REGION_FILTERS.find((r) => r.areaCode === selectedAreaCode)?.label || ''}
+            title={t('nearbyWellness.regionSection')}
+            subtitle={t('nearbyWellness.poweredByRegion')}
             limit={6}
           />
         )}

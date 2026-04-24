@@ -7,6 +7,7 @@ import { Search, MapPin, Phone, Clock, Package, ChevronLeft, ChevronRight, Store
 import CultureMapLayer from "@/components/CultureMapLayer";
 import TourGallerySection from "@/components/TourGallerySection";
 import NearbyCampingStrip from "@/components/NearbyCampingStrip";
+import NearbyWellnessStrip from "@/components/NearbyWellnessStrip";
 let L, MapContainer, TileLayer, Marker, Popup, useMap;
 let greenIcon, redIcon, blueIcon;
 
@@ -558,6 +559,14 @@ function DvdStoresContent() {
             subtitle={t("nearbyCamping.poweredBy")}
             limit={6}
           />
+          <NearbyWellnessStrip
+            lat={userPos.lat}
+            lng={userPos.lon}
+            radiusM={20_000}
+            title={t("nearbyWellness.dvdNearbySection")}
+            subtitle={t("nearbyWellness.poweredByDvd")}
+            limit={6}
+          />
         </div>
       ) : galleryKeyword && (
         <div style={{ maxWidth: 1200, margin: "20px auto 0", padding: "0 4px" }}>
@@ -565,6 +574,12 @@ function DvdStoresContent() {
             keyword={galleryKeyword}
             title={t("nearbyCamping.dvdRegionSection")}
             subtitle={t("nearbyCamping.poweredBy")}
+            limit={6}
+          />
+          <NearbyWellnessStrip
+            keyword={galleryKeyword}
+            title={t("nearbyWellness.dvdRegionSection")}
+            subtitle={t("nearbyWellness.poweredByDvd")}
             limit={6}
           />
         </div>

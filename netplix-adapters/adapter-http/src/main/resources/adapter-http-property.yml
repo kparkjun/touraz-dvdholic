@@ -186,6 +186,28 @@ visitkorea:
     search-url: ${visitkorea.camping.base-url}/searchList
     image-url: ${visitkorea.camping.base-url}/imageList
     cache-minutes: 1440
+  # 웰니스관광정보 서비스 (WellnessTursmService) - 온천/스파/힐링숲/템플스테이/명상/요가 등
+  # Base URL: apis.data.go.kr/B551011/WellnessTursmService
+  # 오퍼레이션 (1차 사용):
+  #   - /areaBasedList    : 지역기반 전국 웰니스 관광정보 (전체/지역코드별)
+  #   - /locationBasedList: 좌표 기반 주변 웰니스 (mapX 경도, mapY 위도, radius 미터)
+  #   - /searchKeyword    : 키워드 검색 (예: 온천, 스파, 템플스테이, 명상)
+  # 추후 확장:
+  #   - /detailCommon     : 공통정보 (overview/homepage/firstimage)
+  #   - /detailIntro      : 소개정보 (운영시간/주차/요금)
+  #   - /detailImage      : 이미지 URL 목록
+  # 주의: KTO 공용 VISITKOREA_SERVICE_KEY 와 활용신청이 별도로 필요할 수 있어 WELLNESS_API_KEY 를
+  #       분리해두고 미설정 시 VISITKOREA_SERVICE_KEY 로 fallback. 둘 다 없으면 isConfigured=false
+  #       로 빈 리스트 반환 → UI 섹션 자동 숨김.
+  wellness:
+    base-url: https://apis.data.go.kr/B551011/WellnessTursmService
+    api-key: ${WELLNESS_API_KEY:${VISITKOREA_SERVICE_KEY:}}
+    area-url: ${visitkorea.wellness.base-url}/areaBasedList
+    location-url: ${visitkorea.wellness.base-url}/locationBasedList
+    search-url: ${visitkorea.wellness.base-url}/searchKeyword
+    detail-common-url: ${visitkorea.wellness.base-url}/detailCommon
+    detail-image-url: ${visitkorea.wellness.base-url}/detailImage
+    cache-minutes: 1440
   # 두루누비 정보 서비스 GW (공공데이터 15101974, TourAPI Guide v4.1)
   # Base URL: apis.data.go.kr/B551011/Durunubi
   # 공식 오퍼레이션 2종:

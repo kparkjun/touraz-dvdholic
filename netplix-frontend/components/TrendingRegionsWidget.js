@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, TrendingUp, PawPrint, Plane, PlaneTakeoff, Camera, Tent } from 'lucide-react';
+import { Sparkles, TrendingUp, PawPrint, Plane, PlaneTakeoff, Camera, Tent, Leaf } from 'lucide-react';
 import Link from 'next/link';
 import axios from '@/lib/axiosConfig';
 import TravelPortalButton from '@/components/TravelPortalButton';
@@ -327,18 +327,26 @@ export default function TrendingRegionsWidget({ limit = 5, defaultPeriod = 'toda
           theme="gallery"
           fullWidth
         />
-        <div className="trw-cta-span2">
-          <TravelPortalButton
-            href="/camping"
-            tag="GoCamping · Nature Stay"
-            title="전국 야영장 찾기"
-            desc="영화 본 그날 밤, 숲속 야영장에서 별을 보며 하루 더. 내 주변 야영장도 한 번에."
-            cta="야영장 전체 보기"
-            Icon={Tent}
-            theme="camping"
-            fullWidth
-          />
-        </div>
+        <TravelPortalButton
+          href="/camping"
+          tag="GoCamping · Nature Stay"
+          title="전국 야영장 찾기"
+          desc="영화 본 그날 밤, 숲속 야영장에서 별을 보며 하루 더. 내 주변 야영장도 한 번에."
+          cta="야영장 전체 보기"
+          Icon={Tent}
+          theme="camping"
+          fullWidth
+        />
+        <TravelPortalButton
+          href="/wellness"
+          tag="Binge Recovery · Wellness"
+          title="정주행 번아웃 힐링 스팟"
+          desc="드라마 몰아본 뒤 뻐근한 어깨와 지친 마음. 가까운 온천·스파·힐링숲에서 리셋해요."
+          cta="힐링 스팟 둘러보기"
+          Icon={Leaf}
+          theme="wellness"
+          fullWidth
+        />
       </div>
       <style jsx>{`
         .trw-cta-grid {
@@ -347,15 +355,9 @@ export default function TrendingRegionsWidget({ limit = 5, defaultPeriod = 'toda
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 14px;
         }
-        .trw-cta-span2 {
-          grid-column: 1 / -1;
-        }
         @media (max-width: 640px) {
           .trw-cta-grid {
             grid-template-columns: 1fr;
-          }
-          .trw-cta-span2 {
-            grid-column: auto;
           }
         }
       `}</style>

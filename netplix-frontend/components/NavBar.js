@@ -150,6 +150,16 @@ function AuthActions({ isLoggedIn, isAdmin, isAuthPage, pathname, onLogout }) {
       </li>
     );
   }
+  if (pathname !== '/wellness') {
+    // "내 주변 힐링 스팟" — 웰니스관광 API 기반, 진입 시 자동 위치 권한 요청
+    navItems.push(
+      <li key="wellness">
+        <Link href="/wellness?nearby=true" className="app-chip app-chip-secondary" onClick={closeMenu}>
+          {t('nav.nearbyWellness', '내 주변 힐링 스팟')}
+        </Link>
+      </li>
+    );
+  }
   if (pathname !== '/support') {
     navItems.push(
       <li key="support">

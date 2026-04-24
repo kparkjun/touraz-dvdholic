@@ -9,6 +9,7 @@ import CineTripCTA from "@/components/CineTripCTA";
 import PhotoGalleryStrip from "@/components/PhotoGalleryStrip";
 import TourGallerySection from "@/components/TourGallerySection";
 import NearbyCampingStrip from "@/components/NearbyCampingStrip";
+import NearbyWellnessStrip from "@/components/NearbyWellnessStrip";
 
 const baseUrl = "https://image.tmdb.org/t/p/original";
 const palette = {
@@ -606,6 +607,20 @@ function MovieImagesContent() {
               keyword={movieName}
               title={t("nearbyCamping.movieSection")}
               subtitle={t("nearbyCamping.poweredBy")}
+              limit={6}
+            />
+          </div>
+        )}
+
+        {/* 정주행 번아웃 · 장르 기반 웰니스 힐링 스팟 추천 */}
+        {movie && (movie.genre || movieName) && (
+          <div style={{ padding: "0 15px", marginBottom: 12 }}>
+            <NearbyWellnessStrip
+              genres={movie.genre
+                ? String(movie.genre).split(/[\s,·/|]+/).map((g) => g.trim()).filter(Boolean)
+                : undefined}
+              title={t("nearbyWellness.movieSection")}
+              subtitle={t("nearbyWellness.poweredBy")}
               limit={6}
             />
           </div>

@@ -59,6 +59,16 @@ const THEMES = {
     hoverGlow: '0 36px 80px -20px rgba(14, 165, 233, 0.6)',
     tagColor: '#bbf7d0',
   },
+  // 웰니스관광 전용 — "정주행 번아웃 · 힐링" 무드: 민트(차) → 라벤더(명상) → 핑크(휴식)
+  wellness: {
+    gradient: 'conic-gradient(from 0deg, #10b981, #8b5cf6, #f472b6, #34d399, #10b981)',
+    iconBg: 'linear-gradient(135deg, #10b981 0%, #8b5cf6 55%, #f472b6 100%)',
+    textGrad: 'linear-gradient(90deg, #6ee7b7 0%, #c4b5fd 50%, #fbcfe8 100%)',
+    accentColor: '#6ee7b7',
+    glow: '0 24px 64px -20px rgba(139, 92, 246, 0.55)',
+    hoverGlow: '0 36px 80px -20px rgba(244, 114, 182, 0.6)',
+    tagColor: '#a7f3d0',
+  },
 };
 
 /** CineTrip용 보딩패스 사이드 라인 장식. */
