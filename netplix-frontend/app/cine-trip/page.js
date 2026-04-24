@@ -24,6 +24,7 @@ import NearbyWellnessStrip from '@/components/NearbyWellnessStrip';
 import NearbyMedicalTourismStrip from '@/components/NearbyMedicalTourismStrip';
 import NearbyAudioGuideStrip from '@/components/NearbyAudioGuideStrip';
 import ConcentrationForecastStrip from '@/components/ConcentrationForecastStrip';
+import ConcentrationHeatmap30 from '@/components/ConcentrationHeatmap30';
 import EngTourSpotsStrip from '@/components/EngTourSpotsStrip';
 import TravelCourseModal from '@/components/TravelCourseModal';
 import CineTripCinematicHero from '@/components/CineTripCinematicHero';
@@ -994,6 +995,18 @@ function CineTripPageInner() {
 
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '40px 20px' }}>
         <ConcentrationForecastStrip
+          areaCode={selectedAreaCode}
+          regionLabel={
+            REGION_FILTERS.find((r) => r.areaCode === selectedAreaCode)?.label || ''
+          }
+        />
+
+        {/*
+         * 30일 집중률 히트맵 (달력형). 7일 스트립이 "다음 주 분위기" 라면
+         * 이 히트맵은 "한 달 전체 중 언제 가는 게 가장 한가한가?" 의 시각화.
+         * selectedAreaCode 가 null (전체) 이거나 영어 모드면 자동 숨김.
+         */}
+        <ConcentrationHeatmap30
           areaCode={selectedAreaCode}
           regionLabel={
             REGION_FILTERS.find((r) => r.areaCode === selectedAreaCode)?.label || ''

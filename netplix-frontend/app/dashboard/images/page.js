@@ -12,6 +12,7 @@ import NearbyCampingStrip from "@/components/NearbyCampingStrip";
 import NearbyWellnessStrip from "@/components/NearbyWellnessStrip";
 import NearbyMedicalTourismStrip from "@/components/NearbyMedicalTourismStrip";
 import NearbyAudioGuideStrip from "@/components/NearbyAudioGuideStrip";
+import MovieCrowdRadarStrip from "@/components/MovieCrowdRadarStrip";
 
 const baseUrl = "https://image.tmdb.org/t/p/original";
 const palette = {
@@ -574,6 +575,15 @@ function MovieImagesContent() {
           posterUrl={posterPath || backdropPath || ""}
           contentType={contentType}
         />
+
+        {/*
+         * Quiet Set Radar · 이 영화 촬영지의 "이번 주 혼잡도" 미니 배지 스트립.
+         * cine-trip seed 에 매핑이 없거나 영어 모드면 자동 숨김.
+         * "보고 가고 싶은 그 촬영지, 붐빌까? 한가할까?" 의 즉답.
+         */}
+        {movieName && (
+          <MovieCrowdRadarStrip movieName={movieName} />
+        )}
 
         {/* 한국관광공사 수상작 포토 - 이 영화 키워드로 교차 검색 */}
         {movieName && (

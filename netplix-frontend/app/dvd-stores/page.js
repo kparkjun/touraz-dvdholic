@@ -10,6 +10,7 @@ import NearbyCampingStrip from "@/components/NearbyCampingStrip";
 import NearbyWellnessStrip from "@/components/NearbyWellnessStrip";
 import NearbyMedicalTourismStrip from "@/components/NearbyMedicalTourismStrip";
 import NearbyAudioGuideStrip from "@/components/NearbyAudioGuideStrip";
+import DvdReturnQuietSpots from "@/components/DvdReturnQuietSpots";
 let L, MapContainer, TileLayer, Marker, Popup, useMap;
 let greenIcon, redIcon, blueIcon;
 
@@ -542,6 +543,18 @@ function DvdStoresContent() {
             subtitle={t("tourGallery.poweredBy")}
             limit={24}
           />
+        </div>
+      )}
+
+      {/*
+       * Quiet Set Radar · 반납길 근처 한가한 관광지 TOP 6 스트립.
+       * 매장 목록에서 추출한 galleryKeyword(시·도) 를 areaCode 로 변환해
+       * 30일 집중률 오버뷰에서 평균 혼잡도 낮은 관광지를 뽑아 보여준다.
+       * 지도 모드에서는 숨김 (지도는 매장 핀 자체에 집중).
+       */}
+      {viewMode !== "map" && galleryKeyword && (
+        <div style={{ maxWidth: 1200, margin: "20px auto 0", padding: "0 4px" }}>
+          <DvdReturnQuietSpots keyword={galleryKeyword} />
         </div>
       )}
 

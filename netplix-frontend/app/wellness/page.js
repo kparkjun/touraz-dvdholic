@@ -40,6 +40,7 @@ import {
   Map as MapIcon,
   Ruler,
 } from "lucide-react";
+import WellnessRecoveryCalendar from "@/components/WellnessRecoveryCalendar";
 
 // Leaflet SSR 이슈 방지: 클라이언트에서만 로딩.
 let L, MapContainer, TileLayer, Marker, Popup, useMap;
@@ -354,6 +355,17 @@ function WellnessInner() {
           </div>
         </div>
       </header>
+
+      {/*
+       * 정주행 회복 캘린더 · 웰니스 × 관광지 집중률 크로스오버.
+       * 지도 모드에서는 카드가 시야를 방해하지 않도록 숨김.
+       * 내부적으로 영어 모드/데이터 없음일 때 자동 숨김.
+       */}
+      {viewMode !== "map" && !nearbyMode && (
+        <div style={{ padding: "0 20px" }}>
+          <WellnessRecoveryCalendar />
+        </div>
+      )}
 
       {nearbyMode && (
         <div className="wel-nearby-panel">
