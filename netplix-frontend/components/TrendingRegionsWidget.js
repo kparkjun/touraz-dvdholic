@@ -72,7 +72,7 @@ export default function TrendingRegionsWidget({ limit = 5, defaultPeriod = 'toda
     <div
       style={{
         width: '100%',
-        maxWidth: 520,
+        maxWidth: 720,
         background: 'linear-gradient(145deg, #141418 0%, #0f0f12 100%)',
         border: '1px solid rgba(255, 255, 255, 0.06)',
         borderRadius: 16,
@@ -288,14 +288,7 @@ export default function TrendingRegionsWidget({ limit = 5, defaultPeriod = 'toda
         </motion.div>
       )}
 
-      <div
-        style={{
-          marginTop: 20,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: 14,
-        }}
-      >
+      <div className="trw-cta-grid">
         <TravelPortalButton
           href="/cine-trip"
           tag="CineTrip · Boarding Pass"
@@ -334,17 +327,38 @@ export default function TrendingRegionsWidget({ limit = 5, defaultPeriod = 'toda
           theme="gallery"
           fullWidth
         />
-        <TravelPortalButton
-          href="/camping"
-          tag="GoCamping · Nature Stay"
-          title="전국 야영장 찾기"
-          desc="영화 본 그날 밤, 숲속 야영장에서 별을 보며 하루 더. 내 주변 야영장도 한 번에."
-          cta="야영장 전체 보기"
-          Icon={Tent}
-          theme="camping"
-          fullWidth
-        />
+        <div className="trw-cta-span2">
+          <TravelPortalButton
+            href="/camping"
+            tag="GoCamping · Nature Stay"
+            title="전국 야영장 찾기"
+            desc="영화 본 그날 밤, 숲속 야영장에서 별을 보며 하루 더. 내 주변 야영장도 한 번에."
+            cta="야영장 전체 보기"
+            Icon={Tent}
+            theme="camping"
+            fullWidth
+          />
+        </div>
       </div>
+      <style jsx>{`
+        .trw-cta-grid {
+          margin-top: 20px;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
+        }
+        .trw-cta-span2 {
+          grid-column: 1 / -1;
+        }
+        @media (max-width: 640px) {
+          .trw-cta-grid {
+            grid-template-columns: 1fr;
+          }
+          .trw-cta-span2 {
+            grid-column: auto;
+          }
+        }
+      `}</style>
     </div>
   );
 }
