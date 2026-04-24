@@ -67,6 +67,23 @@ public class AudioGuideController {
         return NetplixApiResponse.ok(body);
     }
 
+    /**
+     * 특정 관광지(THEME)에 연결된 해설 이야기(STORY) 목록 조회.
+     *
+     * <p>Odii API 특성상 THEME 응답에는 해설 대본(script)이 없고, 각 STORY 가 tid 로 THEME 과
+     * 연결된다. 프런트 모달에서 THEME 카드 클릭 시 이 엔드포인트로 연관 이야기들을 불러와
+     * 각 스토리를 TTS(Web Speech API)로 재생할 수 있도록 제공한다.
+     */
+    @GetMapping("/stories-by-theme")
+    public NetplixApiResponse<List<AudioGuideItemResponse>> storiesByTheme(
+            @RequestParam String themeId,
+            @RequestParam(defaultValue = "ko") String lang,
+            @RequestParam(defaultValue = "20") int limit) {
+        List<AudioGuideItemResponse> body = useCase.storiesByTheme(themeId, lang, limit).stream()
+                .map(AudioGuideItemResponse::from).toList();
+        return NetplixApiResponse.ok(body);
+    }
+
     private AudioGuideItem.Type parseType(String raw) {
         if (raw == null) return AudioGuideItem.Type.THEME;
         String n = raw.trim().toLowerCase(Locale.ROOT);

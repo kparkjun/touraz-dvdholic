@@ -27,6 +27,18 @@ public interface AudioGuideItemPort {
     /** type 별 키워드 검색 (제목/내용 부분 일치). */
     List<AudioGuideItem> fetchByKeyword(AudioGuideItem.Type type, String lang, String keyword, int limit);
 
+    /**
+     * 특정 관광지(THEME)에 연결된 해설 이야기(STORY) 목록 조회.
+     *
+     * <p>Odii API 특성: THEME 응답에는 해설 대본(script)이 없고, 각 STORY 가 tid(=themeId)로
+     * THEME 과 연결된다. THEME 카드 클릭 시 관련 STORY 를 나열해 TTS 재생을 제공하기 위한 조회.
+     *
+     * @param themeId 관광지 ID (AudioGuideItem.id)
+     * @param lang ko | en
+     * @param limit 최대 반환 개수 (0 이하 = 무제한, 상한은 어댑터 내부 정책)
+     */
+    List<AudioGuideItem> fetchStoriesByTheme(String themeId, String lang, int limit);
+
     /** 어댑터 호출 가능 여부(serviceKey 설정). */
     boolean isConfigured();
 }

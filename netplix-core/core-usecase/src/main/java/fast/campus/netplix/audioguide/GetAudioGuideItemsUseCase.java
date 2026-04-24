@@ -13,4 +13,10 @@ public interface GetAudioGuideItemsUseCase {
                                 double latitude, double longitude, int radiusM, int limit);
 
     List<AudioGuideItem> byKeyword(AudioGuideItem.Type type, String lang, String keyword, int limit);
+
+    /**
+     * 특정 관광지(THEME)에 속한 해설 이야기(STORY) 조회.
+     * 모달에서 THEME 카드 클릭 시 연관 이야기들을 불러와 각각 TTS 재생하기 위해 사용.
+     */
+    List<AudioGuideItem> storiesByTheme(String themeId, String lang, int limit);
 }

@@ -14,8 +14,9 @@
  *  - onClose: 닫기 콜백 (필수)
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import axios from "@/lib/axiosConfig";
 import {
   X,
   Play,
@@ -33,6 +34,7 @@ import {
   BookOpen,
   Square,
   Info,
+  Loader2,
 } from "lucide-react";
 
 export default function AudioGuideDetailModal({ item, onClose }) {
@@ -51,6 +53,14 @@ export default function AudioGuideDetailModal({ item, onClose }) {
   const [ttsPaused, setTtsPaused] = useState(false);
   const [ttsSupported, setTtsSupported] = useState(false);
 
+  // --- THEME 카드 → 연관 해설 이야기(STORY) 목록 상태 ---
+  // Odii API 는 THEME 응답에 script 를 내려주지 않는다. 대신 STORY 가 tid 로 연결된다.
+  // 이 모달이 THEME 아이템을 열면 연관 STORY 들을 불러와 각자 TTS 로 재생할 수 있게 한다.
+  const [stories, setStories] = useState([]);
+  const [storiesLoading, setStoriesLoading] = useState(false);
+  const [activeStoryId, setActiveStoryId] = useState(null);
+  const [activeStoryPaused, setActiveStoryPaused] = useState(false);
+
   useEffect(() => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       setTtsSupported(true);
@@ -65,6 +75,8 @@ export default function AudioGuideDetailModal({ item, onClose }) {
     setAudioError(false);
     setTtsPlaying(false);
     setTtsPaused(false);
+    setActiveStoryId(null);
+    setActiveStoryPaused(false);
     if (typeof window !== "undefined" && window.speechSynthesis) {
       try { window.speechSynthesis.cancel(); } catch (_) { /* noop */ }
     }
@@ -78,6 +90,30 @@ export default function AudioGuideDetailModal({ item, onClose }) {
       }
     };
   }, [item?.id]);
+
+  // THEME 카드 → /api/v1/audio-guide/stories-by-theme 호출.
+  // 언어 변경/다른 항목 열림 때마다 재조회. 서버는 캐시되어 있으므로 여러 번 불러도 저렴.
+  useEffect(() => {
+    if (!item || item.type !== "THEME" || !item.id) {
+      setStories([]);
+      return undefined;
+    }
+    let cancelled = false;
+    setStoriesLoading(true);
+    const effectiveLang = (i18n?.language || "ko").toLowerCase().startsWith("en") ? "en" : "ko";
+    axios
+      .get("/api/v1/audio-guide/stories-by-theme", {
+        params: { themeId: item.id, lang: effectiveLang, limit: 30 },
+      })
+      .then((res) => {
+        if (cancelled) return;
+        const arr = res?.data?.data || res?.data || [];
+        setStories(Array.isArray(arr) ? arr : []);
+      })
+      .catch(() => { if (!cancelled) setStories([]); })
+      .finally(() => { if (!cancelled) setStoriesLoading(false); });
+    return () => { cancelled = true; };
+  }, [item?.id, item?.type, i18n?.language]);
 
   // ESC 닫기 + 배경 스크롤 잠금
   useEffect(() => {
@@ -137,6 +173,42 @@ export default function AudioGuideDetailModal({ item, onClose }) {
     try { window.speechSynthesis.cancel(); } catch (_) { /* noop */ }
     setTtsPlaying(false);
     setTtsPaused(false);
+  };
+
+  // --- 스토리 행별 TTS 핸들러 ---
+  const playStoryTts = (story) => {
+    if (!ttsSupported) return;
+    const text = (story?.description && String(story.description).trim())
+      ? String(story.description)
+      : [story?.audioTitle, story?.title, story?.themeCategory].filter(Boolean).join(". ");
+    if (!text) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      const raw = (story?.language || i18n?.language || "ko").toLowerCase();
+      utter.lang = raw.startsWith("en") ? "en-US" : "ko-KR";
+      utter.rate = 1;
+      utter.pitch = 1;
+      utter.onend = () => { setActiveStoryId(null); setActiveStoryPaused(false); };
+      utter.onerror = () => { setActiveStoryId(null); setActiveStoryPaused(false); };
+      window.speechSynthesis.speak(utter);
+      setActiveStoryId(story.id);
+      setActiveStoryPaused(false);
+    } catch (_) { /* noop */ }
+  };
+  const pauseStoryTts = () => {
+    if (!ttsSupported) return;
+    try { window.speechSynthesis.pause(); setActiveStoryPaused(true); } catch (_) { /* noop */ }
+  };
+  const resumeStoryTts = () => {
+    if (!ttsSupported) return;
+    try { window.speechSynthesis.resume(); setActiveStoryPaused(false); } catch (_) { /* noop */ }
+  };
+  const stopStoryTts = () => {
+    if (!ttsSupported) return;
+    try { window.speechSynthesis.cancel(); } catch (_) { /* noop */ }
+    setActiveStoryId(null);
+    setActiveStoryPaused(false);
   };
 
   const togglePlay = () => {
@@ -318,6 +390,80 @@ export default function AudioGuideDetailModal({ item, onClose }) {
                   </a>
                 </p>
               )}
+            </div>
+          ) : item.type === "THEME" && ttsSupported ? (
+            // Odii API 는 THEME(관광지) 응답에 script 를 내려주지 않고,
+            // STORY(이야기) 응답에만 해설 대본이 있다. 여러 STORY 가 tid 로 THEME 에 연결되므로
+            // 이 관광지와 연결된 이야기들을 나열해 각자 TTS 재생 버튼을 제공한다.
+            <div className="agm-theme-stories">
+              <div className="agm-theme-stories-head">
+                <div className="agm-theme-stories-title">
+                  <Mic2 size={16} /> {t("audioGuide.detail.stories.title", "이 관광지의 해설 이야기")}
+                </div>
+                <div className="agm-theme-stories-sub">
+                  {t("audioGuide.detail.stories.sub", "Odii 는 오디오 파일을 공개하지 않아요. 관련 해설 이야기를 골라 AI 음성으로 들어보세요.")}
+                </div>
+              </div>
+              {storiesLoading ? (
+                <div className="agm-stories-loading">
+                  <Loader2 size={16} className="agm-spin" />
+                  {t("audioGuide.detail.stories.loading", "연관 해설 이야기를 불러오는 중...")}
+                </div>
+              ) : stories.length === 0 ? (
+                <div className="agm-stories-empty">
+                  <Info size={14} />
+                  {t("audioGuide.detail.stories.empty", "이 관광지에 연결된 해설 이야기를 찾지 못했어요. 서버 캐시가 준비되는 동안 잠시 후 다시 열어 주세요.")}
+                </div>
+              ) : (
+                <ul className="agm-stories-list">
+                  {stories.map((s) => {
+                    const isActive = activeStoryId === s.id;
+                    const isPlaying = isActive && !activeStoryPaused;
+                    const label = s.audioTitle || s.title || "";
+                    return (
+                      <li key={s.id} className={`agm-story-row${isActive ? " active" : ""}`}>
+                        <button
+                          type="button"
+                          className="agm-story-play"
+                          onClick={() => {
+                            if (!isActive) return playStoryTts(s);
+                            if (activeStoryPaused) return resumeStoryTts();
+                            return pauseStoryTts();
+                          }}
+                          aria-label={isPlaying ? "pause" : "play"}
+                        >
+                          {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                        </button>
+                        <div className="agm-story-meta">
+                          <div className="agm-story-title">{label}</div>
+                          <div className="agm-story-sub">
+                            {s.playTimeText && (
+                              <span><Clock size={10} /> {formatPlayTime(s.playTimeText)}</span>
+                            )}
+                            {s.themeCategory && (
+                              <span><Tag size={10} /> {s.themeCategory}</span>
+                            )}
+                          </div>
+                        </div>
+                        {isActive && (
+                          <button
+                            type="button"
+                            className="agm-story-stop"
+                            onClick={stopStoryTts}
+                            aria-label={t("audioGuide.detail.tts.stop", "정지")}
+                          >
+                            <Square size={12} />
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              <div className="agm-tts-meta">
+                <Info size={11} />
+                {t("audioGuide.detail.tts.note", "음성 품질은 사용 중인 브라우저/OS 에 따라 달라져요.")}
+              </div>
             </div>
           ) : hasScript && ttsSupported ? (
             // Odii 공공 OpenAPI 가 audioUrl 을 비공개로 제공하므로,
@@ -588,6 +734,82 @@ const modalCss = `
   font-size: 0.72rem; color: #c4b5fd;
 }
 .agm-tts-meta span { color: #fde68a; font-weight: 700; }
+
+.agm-theme-stories {
+  background: linear-gradient(135deg, rgba(167,139,250,0.12) 0%, rgba(251,191,36,0.08) 100%);
+  border: 1px solid rgba(167,139,250,0.35);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.agm-theme-stories-head { margin-bottom: 10px; }
+.agm-theme-stories-title {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.95rem; font-weight: 800; color: #fff;
+}
+.agm-theme-stories-sub {
+  margin-top: 3px; font-size: 0.78rem; line-height: 1.45;
+  color: #d8c7fd;
+}
+.agm-stories-loading, .agm-stories-empty {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 12px; border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: #cbb7f7; font-size: 0.85rem;
+  border: 1px dashed rgba(167,139,250,0.22);
+  width: 100%;
+  box-sizing: border-box;
+}
+.agm-stories-empty { color: #fde68a; border-color: rgba(251,191,36,0.3); }
+.agm-spin { animation: agm-spin 1s linear infinite; }
+@keyframes agm-spin { to { transform: rotate(360deg); } }
+
+.agm-stories-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 280px; overflow-y: auto;
+}
+.agm-story-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.agm-story-row:hover { background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.35); }
+.agm-story-row.active {
+  background: rgba(167,139,250,0.18);
+  border-color: rgba(167,139,250,0.6);
+  box-shadow: 0 0 0 2px rgba(167,139,250,0.15);
+}
+.agm-story-play {
+  width: 34px; height: 34px; border-radius: 50%;
+  flex-shrink: 0;
+  border: none; cursor: pointer;
+  background: linear-gradient(135deg, #a78bfa 0%, #f59e0b 100%);
+  color: #1b0a38;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.agm-story-play:hover { filter: brightness(1.1); }
+.agm-story-meta { flex: 1; min-width: 0; }
+.agm-story-title {
+  font-size: 0.88rem; font-weight: 700; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agm-story-sub {
+  margin-top: 2px; font-size: 0.72rem; color: #c4b5fd;
+  display: inline-flex; gap: 10px; flex-wrap: wrap;
+}
+.agm-story-sub span { display: inline-flex; align-items: center; gap: 3px; }
+.agm-story-stop {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.35); color: #fff; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.agm-story-stop:hover { background: rgba(239,68,68,0.85); border-color: transparent; }
 
 .agm-script {
   background: rgba(255,255,255,0.03);

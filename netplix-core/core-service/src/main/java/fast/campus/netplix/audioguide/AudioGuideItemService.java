@@ -47,6 +47,12 @@ public class AudioGuideItemService implements GetAudioGuideItemsUseCase {
         return port.fetchByKeyword(sanitizeType(type), sanitizeLang(lang), keyword, sanitize(limit));
     }
 
+    @Override
+    public List<AudioGuideItem> storiesByTheme(String themeId, String lang, int limit) {
+        if (themeId == null || themeId.isBlank()) return List.of();
+        return port.fetchStoriesByTheme(themeId.trim(), sanitizeLang(lang), sanitize(limit));
+    }
+
     private int sanitize(int limit) {
         if (limit <= 0) return 0;
         return Math.min(limit, MAX_LIMIT);

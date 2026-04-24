@@ -98,14 +98,24 @@ public class VisitKoreaOdiiHttpClient implements AudioGuideItemPort {
             log.info("[ODII] serviceKey/URL 미설정 - 프리워밍 생략");
             return;
         }
-        // ko 테마만 프리워밍. story/en 은 최초 호출 시 적재.
+        // ko 테마 + ko 스토리 프리워밍.
+        // 스토리 캐시는 THEME 카드 모달의 "연관 해설 이야기" 즉시 로딩을 위해 필수.
         CompletableFuture.runAsync(() -> {
             try {
                 refreshAll(AudioGuideItem.Type.THEME, "ko");
                 log.info("[ODII] 프리워밍 완료 (THEME:ko) - {} 건 로드",
                         getSnapshot(allKey(AudioGuideItem.Type.THEME, "ko")).sites.size());
             } catch (Exception ex) {
-                log.warn("[ODII] 프리워밍 실패 (활용신청 미승인 가능): {}", ex.getMessage());
+                log.warn("[ODII] 프리워밍 실패 THEME:ko (활용신청 미승인 가능): {}", ex.getMessage());
+            }
+        });
+        CompletableFuture.runAsync(() -> {
+            try {
+                refreshAll(AudioGuideItem.Type.STORY, "ko");
+                log.info("[ODII] 프리워밍 완료 (STORY:ko) - {} 건 로드",
+                        getSnapshot(allKey(AudioGuideItem.Type.STORY, "ko")).sites.size());
+            } catch (Exception ex) {
+                log.warn("[ODII] 프리워밍 실패 STORY:ko: {}", ex.getMessage());
             }
         });
     }
@@ -184,6 +194,30 @@ public class VisitKoreaOdiiHttpClient implements AudioGuideItemPort {
 
         scheduleKeywordRefresh(type, l, keyword.trim(), cacheKey);
         return take(snap.sites, limit);
+    }
+
+    /**
+     * 특정 THEME 에 연결된 STORY 목록 조회.
+     *
+     * <p>Odii 응답 분석: storyBasedList item 의 {@code tid} 필드가 연관 THEME 의 id 를 가리킨다.
+     * 별도 전용 오퍼레이션이 공개되어 있지 않으므로, 이미 캐시된 전체 STORY 리스트에서
+     * {@code themeId} 로 필터링하여 반환한다. STORY 전체가 아직 캐시에 없으면
+     * {@link #fetchAll} 로 선적재한다.
+     *
+     * <p>선적재 이후에도 캐시는 type=STORY+lang 단위이므로 재조회 비용은 한 번만 발생.
+     */
+    @Override
+    public List<AudioGuideItem> fetchStoriesByTheme(String themeId, String lang, int limit) {
+        if (!isConfigured()) return List.of();
+        if (themeId == null || themeId.isBlank()) return List.of();
+        String l = normalize(lang);
+        List<AudioGuideItem> stories = fetchAll(AudioGuideItem.Type.STORY, l, Integer.MAX_VALUE);
+        if (stories.isEmpty()) return List.of();
+        String key = themeId.trim();
+        List<AudioGuideItem> matched = stories.stream()
+                .filter(s -> key.equals(s.getThemeId()))
+                .collect(Collectors.toList());
+        return take(matched, limit);
     }
 
     // =========================================================================

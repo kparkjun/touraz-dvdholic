@@ -477,6 +477,12 @@
         "pause": "Pause",
         "stop": "Stop",
         "note": "Voice quality depends on your browser/OS."
+      },
+      "stories": {
+        "title": "Narration stories for this spot",
+        "sub": "Odii does not expose audio files. Pick a related narration story and listen with AI voice.",
+        "loading": "Loading related narration stories...",
+        "empty": "No narration stories linked to this spot yet. The server cache may still be warming up — please try again in a moment."
       }
     }
   },
