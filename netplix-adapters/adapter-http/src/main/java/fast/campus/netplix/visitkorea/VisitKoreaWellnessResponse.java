@@ -1,6 +1,7 @@
 package fast.campus.netplix.visitkorea;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -61,32 +62,41 @@ public class VisitKoreaWellnessResponse {
 
     /**
      * WellnessTursmService /areaBasedList · /locationBasedList · /searchKeyword 공용 item.
-     * 필드명은 API 응답 원문(소문자 snake-ish)을 그대로 따른다.
+     *
+     * <p>주의: 웰니스 API 는 일반 KTO(VisitKorea) API와 달리 camelCase + KTO 내부 코드 체계를 사용한다.
+     * 예) addr1/addr2 → baseAddr/detailAddr, firstimage → orgImage, mapx/mapy → mapX/mapY,
+     *     areacode/sigungucode → lDongRegnCd/lDongSignguCd, cat1/cat2/cat3 → wellnessThemaCd(단일)
      */
     @Getter
     @Setter
     @NoArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Item {
-        private String contentid;
-        private String contenttypeid;
+        private String contentId;
+        private String contentTypeId;
         private String title;
-        private String addr1;
-        private String addr2;
-        private String zipcode;
+        private String baseAddr;
+        private String detailAddr;
+        private String zipCd;
         private String tel;
-        private String firstimage;
-        private String firstimage2;
-        private String mapx;          // 경도(longitude)
-        private String mapy;          // 위도(latitude)
-        private String cat1;
-        private String cat2;
-        private String cat3;
-        private String areacode;
-        private String sigungucode;
+        private String orgImage;
+        private String thumbImage;
+        private String mapX;          // 경도(longitude)
+        private String mapY;          // 위도(latitude)
+        /** 웰니스 테마 코드 (예: EX050100 뷰티스파, EX050200 한방체험). */
+        private String wellnessThemaCd;
+        /** 법정동 시도 코드. Lombok getter 가 getLDongRegnCd 로 생성되어 Jackson 기본 규칙과 케이스 불일치. */
+        @JsonProperty("lDongRegnCd")
+        private String lDongRegnCd;
+        /** 법정동 시군구 코드. */
+        @JsonProperty("lDongSignguCd")
+        private String lDongSignguCd;
+        private String langDivCd;
         /** locationBasedList 에서 내려주는 거리(m). */
         private String dist;
-        private String createdtime;
-        private String modifiedtime;
+        private String regDt;
+        private String mdfcnDt;
+        private String cpyrhtDivCd;
+        private String mlevel;
     }
 }

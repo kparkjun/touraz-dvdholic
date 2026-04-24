@@ -253,6 +253,8 @@ public class VisitKoreaWellnessHttpClient implements WellnessSpotPort {
         sb.append("&MobileApp=touraz-dvdholic");
         sb.append("&numOfRows=").append(rows);
         sb.append("&pageNo=").append(pageNo);
+        // 웰니스 API 전용 필수 파라미터(누락 시 NO_MANDATORY_REQUEST_PARAMETERS_ERROR1(langDivCd))
+        sb.append("&langDivCd=ko");
         extraParams.forEach((k, v) -> sb.append('&').append(k).append('=')
                 .append(URLEncoder.encode(v, StandardCharsets.UTF_8)));
 
@@ -311,26 +313,28 @@ public class VisitKoreaWellnessHttpClient implements WellnessSpotPort {
     }
 
     private static WellnessSpot toDomain(VisitKoreaWellnessResponse.Item i) {
-        Double lat = parseDouble(i.getMapy());
-        Double lng = parseDouble(i.getMapx());
-        String addr = joinAddr(i.getAddr1(), i.getAddr2());
-        String image = nullIfBlank(i.getFirstimage());
-        if (image == null) image = nullIfBlank(i.getFirstimage2());
+        Double lat = parseDouble(i.getMapY());
+        Double lng = parseDouble(i.getMapX());
+        String addr = joinAddr(i.getBaseAddr(), i.getDetailAddr());
+        String image = nullIfBlank(i.getOrgImage());
+        if (image == null) image = nullIfBlank(i.getThumbImage());
+        // 웰니스 API 는 테마 코드(wellnessThemaCd) 단일 분류를 사용하므로 cat3 슬롯에 매핑하여
+        // 프런트 배지 표시에 재활용한다.
         return WellnessSpot.builder()
-                .id(i.getContentid())
+                .id(i.getContentId())
                 .name(i.getTitle())
                 .address(addr)
-                .zipcode(nullIfBlank(i.getZipcode()))
+                .zipcode(nullIfBlank(i.getZipCd()))
                 .latitude(lat)
                 .longitude(lng)
                 .imageUrl(image)
                 .tel(nullIfBlank(i.getTel()))
-                .cat1(nullIfBlank(i.getCat1()))
-                .cat2(nullIfBlank(i.getCat2()))
-                .cat3(nullIfBlank(i.getCat3()))
-                .areaCode(nullIfBlank(i.getAreacode()))
-                .sigunguCode(nullIfBlank(i.getSigungucode()))
-                .contentTypeId(nullIfBlank(i.getContenttypeid()))
+                .cat1(null)
+                .cat2(null)
+                .cat3(nullIfBlank(i.getWellnessThemaCd()))
+                .areaCode(nullIfBlank(i.getLDongRegnCd()))
+                .sigunguCode(nullIfBlank(i.getLDongSignguCd()))
+                .contentTypeId(nullIfBlank(i.getContentTypeId()))
                 .build();
     }
 
