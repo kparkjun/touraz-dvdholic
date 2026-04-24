@@ -26,6 +26,17 @@ public record AudioGuideItemResponse(
         Double distanceKm
 ) {
     public static AudioGuideItemResponse from(AudioGuideItem s) {
+        return from(s, false);
+    }
+
+    /**
+     * lite=true 일 때 큰 필드(해설 대본)를 응답에서 생략한다.
+     *
+     * <p>STORY 리스트는 한 항목당 수 KB 의 script 를 포함해 전체 6,000+건을 직렬화하면
+     * 응답이 수 MB 로 커지고 프런트 렌더링이 불안정해진다. 리스트 조회는 기본 lite,
+     * 모달에서 상세가 필요한 순간에 별도 엔드포인트로 description 을 조회한다.
+     */
+    public static AudioGuideItemResponse from(AudioGuideItem s, boolean lite) {
         return new AudioGuideItemResponse(
                 s.getId(),
                 s.getThemeId(),
@@ -34,7 +45,7 @@ public record AudioGuideItemResponse(
                 s.getAudioTitle(),
                 s.getAudioUrl(),
                 s.getPlayTimeText(),
-                s.getDescription(),
+                lite ? null : s.getDescription(),
                 s.getImageUrl(),
                 s.getAddress(),
                 s.getLatitude(),

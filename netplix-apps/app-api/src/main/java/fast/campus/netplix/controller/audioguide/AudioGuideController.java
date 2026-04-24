@@ -37,9 +37,10 @@ public class AudioGuideController {
     public NetplixApiResponse<List<AudioGuideItemResponse>> list(
             @RequestParam(defaultValue = "theme") String type,
             @RequestParam(defaultValue = "ko") String lang,
-            @RequestParam(defaultValue = "24") int limit) {
+            @RequestParam(defaultValue = "24") int limit,
+            @RequestParam(defaultValue = "true") boolean lite) {
         List<AudioGuideItemResponse> body = useCase.all(parseType(type), lang, limit).stream()
-                .map(AudioGuideItemResponse::from).toList();
+                .map(i -> AudioGuideItemResponse.from(i, lite)).toList();
         return NetplixApiResponse.ok(body);
     }
 
@@ -50,9 +51,10 @@ public class AudioGuideController {
             @RequestParam double lat,
             @RequestParam double lon,
             @RequestParam(defaultValue = "10000") int radius,
-            @RequestParam(defaultValue = "50") int limit) {
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(defaultValue = "true") boolean lite) {
         List<AudioGuideItemResponse> body = useCase.nearby(parseType(type), lang, lat, lon, radius, limit).stream()
-                .map(AudioGuideItemResponse::from).toList();
+                .map(i -> AudioGuideItemResponse.from(i, lite)).toList();
         return NetplixApiResponse.ok(body);
     }
 
@@ -61,10 +63,34 @@ public class AudioGuideController {
             @RequestParam(defaultValue = "theme") String type,
             @RequestParam(defaultValue = "ko") String lang,
             @RequestParam String q,
-            @RequestParam(defaultValue = "24") int limit) {
+            @RequestParam(defaultValue = "24") int limit,
+            @RequestParam(defaultValue = "true") boolean lite) {
         List<AudioGuideItemResponse> body = useCase.byKeyword(parseType(type), lang, q, limit).stream()
-                .map(AudioGuideItemResponse::from).toList();
+                .map(i -> AudioGuideItemResponse.from(i, lite)).toList();
         return NetplixApiResponse.ok(body);
+    }
+
+    /**
+     * 단일 아이템 상세 조회 — description(해설 대본) 포함 풀 응답.
+     *
+     * <p>리스트는 응답 크기 절감을 위해 기본 lite 모드(description 제외)로 내려가므로,
+     * 모달 등 상세 UI 에서 이 엔드포인트로 script 를 보강한다.
+     * 내부적으로 어댑터 캐시에서 id 로 찾으므로 추가 외부 호출은 발생하지 않는다.
+     */
+    @GetMapping("/detail")
+    public NetplixApiResponse<AudioGuideItemResponse> detail(
+            @RequestParam(defaultValue = "theme") String type,
+            @RequestParam(defaultValue = "ko") String lang,
+            @RequestParam String id) {
+        AudioGuideItem.Type t = parseType(type);
+        String target = id == null ? "" : id.trim();
+        // 캐시된 전체 리스트에서 id 매칭 탐색. limit=0 → 무제한(캐시 전체).
+        AudioGuideItemResponse found = useCase.all(t, lang, 0).stream()
+                .filter(i -> target.equals(i.getId()))
+                .findFirst()
+                .map(i -> AudioGuideItemResponse.from(i, false))
+                .orElse(null);
+        return NetplixApiResponse.ok(found);
     }
 
     /**

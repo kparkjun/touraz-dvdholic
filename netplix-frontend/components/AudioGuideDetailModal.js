@@ -61,6 +61,9 @@ export default function AudioGuideDetailModal({ item, onClose }) {
   const [activeStoryId, setActiveStoryId] = useState(null);
   const [activeStoryPaused, setActiveStoryPaused] = useState(false);
 
+  // 리스트 응답은 lite(description 생략)로 내려오므로, STORY 상세에서만 필요한 script 를 지연 조회한다.
+  const [loadedDesc, setLoadedDesc] = useState(null);
+
   useEffect(() => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       setTtsSupported(true);
@@ -77,6 +80,7 @@ export default function AudioGuideDetailModal({ item, onClose }) {
     setTtsPaused(false);
     setActiveStoryId(null);
     setActiveStoryPaused(false);
+    setLoadedDesc(null);
     if (typeof window !== "undefined" && window.speechSynthesis) {
       try { window.speechSynthesis.cancel(); } catch (_) { /* noop */ }
     }
@@ -115,6 +119,26 @@ export default function AudioGuideDetailModal({ item, onClose }) {
     return () => { cancelled = true; };
   }, [item?.id, item?.type, i18n?.language]);
 
+  // STORY 카드 상세 조회: 리스트는 lite 로 내려오므로 description 이 없으면 여기서 보강.
+  // THEME 카드는 원본 응답에도 script 가 없어 조회해도 받을 값이 없으므로 생략.
+  useEffect(() => {
+    if (!item || item.type !== "STORY" || !item.id) return undefined;
+    if (item.description && String(item.description).trim()) return undefined;
+    let cancelled = false;
+    const effectiveLang = (i18n?.language || "ko").toLowerCase().startsWith("en") ? "en" : "ko";
+    axios
+      .get("/api/v1/audio-guide/detail", {
+        params: { type: "story", lang: effectiveLang, id: item.id },
+      })
+      .then((res) => {
+        if (cancelled) return;
+        const d = res?.data?.data?.description;
+        if (d) setLoadedDesc(String(d));
+      })
+      .catch(() => { /* noop */ });
+    return () => { cancelled = true; };
+  }, [item?.id, item?.type, item?.description, i18n?.language]);
+
   // ESC 닫기 + 배경 스크롤 잠금
   useEffect(() => {
     if (!item) return;
@@ -133,12 +157,16 @@ export default function AudioGuideDetailModal({ item, onClose }) {
   if (!item) return null;
 
   const hasAudio = !!item.audioUrl;
-  const hasScript = !!(item.description && String(item.description).trim());
+  // description 은 리스트 lite 응답에서 빠져 있을 수 있으므로 loadedDesc 로 보강.
+  const effectiveDescription = (item.description && String(item.description).trim())
+    ? String(item.description)
+    : (loadedDesc && String(loadedDesc).trim()) ? String(loadedDesc) : "";
+  const hasScript = !!effectiveDescription;
   const hasCoords = typeof item.latitude === "number" && typeof item.longitude === "number";
 
   // TTS 에 사용할 텍스트: 스크립트 우선, 없으면 제목 + 카테고리.
   const ttsText = hasScript
-    ? String(item.description)
+    ? effectiveDescription
     : [item.title, item.audioTitle, item.themeCategory].filter(Boolean).join(". ");
   const ttsLang = (() => {
     const raw = (item.language || i18n?.language || "ko").toLowerCase();
@@ -515,10 +543,10 @@ export default function AudioGuideDetailModal({ item, onClose }) {
             </div>
           )}
 
-          {item.description && (
+          {effectiveDescription && (
             <section className="agm-script">
               <h3>{t("audioGuide.detail.script", "해설 스크립트")}</h3>
-              <p>{item.description}</p>
+              <p>{effectiveDescription}</p>
             </section>
           )}
 
