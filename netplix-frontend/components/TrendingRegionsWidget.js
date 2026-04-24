@@ -364,8 +364,8 @@ export default function TrendingRegionsWidget({ limit = 5, defaultPeriod = 'toda
             href="/audio-guide"
             tag="Cine Audio Trail · Odii · 귀로 듣는 영화의 배경"
             title="영화는 극장에서 · 이야기는 현지에서"
-            desc="정주행 번아웃 뒤 눈 대신 귀로. 한국관광공사 오디오 가이드 팟캐스트로 촬영지·DVD 반납길·궁궐·사찰의 숨은 이야기를 이어폰으로 만나보세요."
-            cta="오디오 가이드 들으러 가기"
+            desc="정주행 번아웃 뒤 눈 대신 귀로. 한국관광공사 오디오 가이드 팟캐스트로 만나는 4대 시그니처 코스 — 촬영지 · DVD 반납길 · 궁궐 · 사찰의 숨은 이야기를 이어폰으로."
+            cta="4대 코스 열어 보기"
             Icon={Headphones}
             theme="audio"
             fullWidth

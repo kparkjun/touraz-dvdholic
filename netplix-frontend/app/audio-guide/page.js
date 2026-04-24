@@ -46,6 +46,11 @@ import {
   VolumeX,
   Radio,
   BookOpen,
+  Film,
+  PackageCheck,
+  Landmark,
+  Sparkles,
+  ChevronRight,
 } from "lucide-react";
 
 const PAGE_SIZE = 60;
@@ -397,6 +402,101 @@ function AudioGuidePageInner() {
         </div>
       </header>
 
+      {/*
+       * Cine Audio Trail · 4대 시그니처 코스 큐레이션.
+       * 대시보드 CTA 카피("촬영지 · DVD 반납길 · 궁궐 · 사찰의 숨은 이야기")와 1:1 대응하는
+       * 대표 코스 카드 4장. 사용자가 카피와 페이지 구조를 연결 짓지 못한 UX 갭을 해소.
+       *
+       * 카드 클릭 시 동작:
+       *  - 촬영지 코스: 카피에 맞춘 키워드(영화/드라마) 중 현 언어에 맞는 기본 키워드로 필터
+       *  - DVD 반납길 코스: requestNearby() 호출 → 지오로케이션 기반 내 주변 오디오 가이드
+       *  - 궁궐 / 사찰 코스: 각 전용 키워드로 테마 필터
+       *
+       * 현재 활성 코스는 시각적으로 하이라이트(outline + glow)해 사용자가 지금 어느
+       * 스토리 무드에 있는지 즉시 파악 가능.
+       */}
+      <section className="agp-courses" aria-label={t("audioGuide.courses.aria", "Cine Audio Trail 4대 코스")}>
+        <div className="agp-courses-head">
+          <Sparkles size={14} />
+          <span>{t("audioGuide.courses.title", "Cine Audio Trail · 4대 시그니처 코스")}</span>
+        </div>
+        <div className="agp-courses-grid">
+          <CourseCard
+            icon={<Film size={18} />}
+            theme="film"
+            title={t("audioGuide.courses.film.title", "촬영지 · Cine Set Trail")}
+            desc={t(
+              "audioGuide.courses.film.desc",
+              "영화·K-드라마 속 그 장면, 그 장소. 감독이 왜 이 배경을 골랐는지 현장에서 귀로 듣기."
+            )}
+            active={!wantNearby && (keyword === "영화" || keyword === "드라마" || keyword === "K-드라마" || keyword === "Film Location" || keyword === "K-Drama")}
+            actionLabel={t("audioGuide.courses.film.cta", "드라마 촬영지 듣기")}
+            onClick={() =>
+              applyShortcutKeyword({
+                key: "드라마",
+                ko: "드라마",
+                en: "K-Drama",
+              })
+            }
+          />
+          <CourseCard
+            icon={<PackageCheck size={18} />}
+            theme="dvd"
+            title={t("audioGuide.courses.dvd.title", "DVD 반납길 · Return Route")}
+            desc={t(
+              "audioGuide.courses.dvd.desc",
+              "DVD 반납 가는 길, 지금 내 위치 주변의 숨은 해설을 이어폰으로. GPS 기반 오디오 가이드."
+            )}
+            active={wantNearby}
+            actionLabel={
+              nearbyStatus === "locating"
+                ? t("audioGuide.nearby.locating", "위치 확인 중…")
+                : wantNearby
+                ? t("audioGuide.courses.dvd.on", "내 주변 듣는 중")
+                : t("audioGuide.courses.dvd.cta", "내 위치로 시작")
+            }
+            onClick={requestNearby}
+            disabled={nearbyStatus === "locating"}
+          />
+          <CourseCard
+            icon={<Landmark size={18} />}
+            theme="palace"
+            title={t("audioGuide.courses.palace.title", "궁궐 · Royal Whisper")}
+            desc={t(
+              "audioGuide.courses.palace.desc",
+              "경복궁·창덕궁·덕수궁의 담장 너머 왕실 이야기. 걸으며 듣는 조선의 하루."
+            )}
+            active={!wantNearby && (keyword === "궁궐" || keyword === "Palace")}
+            actionLabel={t("audioGuide.courses.palace.cta", "궁궐 이야기 듣기")}
+            onClick={() =>
+              applyShortcutKeyword({
+                key: "궁궐",
+                ko: "궁궐",
+                en: "Palace",
+              })
+            }
+          />
+          <CourseCard
+            icon={<Mic2 size={18} />}
+            theme="temple"
+            title={t("audioGuide.courses.temple.title", "사찰 · Mindful Path")}
+            desc={t(
+              "audioGuide.courses.temple.desc",
+              "불국사·해인사·통도사… 스님의 발걸음을 따라가는 명상의 오디오 트레일."
+            )}
+            active={!wantNearby && (keyword === "사찰" || keyword === "Temple")}
+            actionLabel={t("audioGuide.courses.temple.cta", "사찰 이야기 듣기")}
+            onClick={() =>
+              applyShortcutKeyword({
+                key: "사찰",
+                ko: "사찰",
+                en: "Temple",
+              })
+            }
+          />
+        </div>
+      </section>
+
       {/* Chips */}
       <div className="agp-chips">
         <div className="agp-chips-row">
@@ -550,6 +650,36 @@ function AudioGuidePageInner() {
   );
 }
 
+/**
+ * Cine Audio Trail 의 시그니처 코스 카드.
+ * 4개 코스(촬영지/DVD 반납길/궁궐/사찰) 공통 레이아웃. 각 코스의 개성 테마 색상만 prop 으로 구분.
+ *
+ * active=true 인 카드는 상단 배지 + 외곽선 + glow 로 "지금 이 코스 듣는 중" 을 알린다.
+ */
+function CourseCard({ icon, theme, title, desc, active, actionLabel, onClick, disabled }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`agp-course agp-course-${theme} ${active ? "agp-course-active" : ""}`}
+    >
+      {active && (
+        <span className="agp-course-live">
+          <span className="agp-course-dot" /> NOW PLAYING
+        </span>
+      )}
+      <span className="agp-course-icon">{icon}</span>
+      <span className="agp-course-title">{title}</span>
+      <span className="agp-course-desc">{desc}</span>
+      <span className="agp-course-cta">
+        {actionLabel}
+        <ChevronRight size={14} />
+      </span>
+    </button>
+  );
+}
+
 function AudioCard({ item, playing, onToggle, onOpen }) {
   const { t } = useTranslation();
   const hasAudio = !!item.audioUrl;
@@ -675,6 +805,136 @@ const agpCss = `
     radial-gradient(1000px 400px at 100% 0%, rgba(251,191,36,0.14) 0%, transparent 60%),
     linear-gradient(180deg, #0a0614 0%, #0a0614 40%, #100a1c 100%);
 }
+
+/* ===== Cine Audio Trail · 4대 시그니처 코스 ===== */
+.agp-courses {
+  max-width: 1200px;
+  margin: 4px auto 20px;
+  padding: 0 16px;
+}
+.agp-courses-head {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-bottom: 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.1);
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  color: #fde68a;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.agp-courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.agp-course {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px 16px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  min-height: 170px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(20,16,36,0.7), rgba(20,16,36,0.4));
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.agp-course:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.2);
+}
+.agp-course:disabled { opacity: 0.65; cursor: wait; }
+.agp-course::before {
+  content: "";
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  filter: blur(22px);
+  opacity: 0.65;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.agp-course:hover::before { opacity: 0.9; }
+
+.agp-course-film::before        { background: radial-gradient(circle, rgba(244,63,94,0.55), transparent 65%); }
+.agp-course-dvd::before         { background: radial-gradient(circle, rgba(249,115,22,0.55), transparent 65%); }
+.agp-course-palace::before      { background: radial-gradient(circle, rgba(250,204,21,0.55), transparent 65%); }
+.agp-course-temple::before      { background: radial-gradient(circle, rgba(16,185,129,0.55), transparent 65%); }
+
+.agp-course-film.agp-course-active  { border-color: rgba(244,63,94,0.7);  box-shadow: 0 18px 40px -18px rgba(244,63,94,0.55); }
+.agp-course-dvd.agp-course-active   { border-color: rgba(249,115,22,0.7); box-shadow: 0 18px 40px -18px rgba(249,115,22,0.55); }
+.agp-course-palace.agp-course-active{ border-color: rgba(250,204,21,0.7); box-shadow: 0 18px 40px -18px rgba(250,204,21,0.55); }
+.agp-course-temple.agp-course-active{ border-color: rgba(16,185,129,0.7); box-shadow: 0 18px 40px -18px rgba(16,185,129,0.55); }
+
+.agp-course-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  position: relative;
+  z-index: 1;
+}
+.agp-course-film  .agp-course-icon { color: #fecdd3; background: rgba(244,63,94,0.18); }
+.agp-course-dvd   .agp-course-icon { color: #fed7aa; background: rgba(249,115,22,0.18); }
+.agp-course-palace.agp-course .agp-course-icon,
+.agp-course-palace .agp-course-icon { color: #fde68a; background: rgba(250,204,21,0.18); }
+.agp-course-temple .agp-course-icon { color: #a7f3d0; background: rgba(16,185,129,0.18); }
+
+.agp-course-title {
+  position: relative; z-index: 1;
+  font-size: 1rem; font-weight: 800; letter-spacing: -0.2px;
+  color: #fff;
+}
+.agp-course-desc {
+  position: relative; z-index: 1;
+  font-size: 0.82rem; line-height: 1.45;
+  color: #cbd5e1;
+  flex: 1;
+}
+.agp-course-cta {
+  position: relative; z-index: 1;
+  margin-top: auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.78rem; font-weight: 800;
+}
+.agp-course-film  .agp-course-cta { color: #fda4af; }
+.agp-course-dvd   .agp-course-cta { color: #fdba74; }
+.agp-course-palace .agp-course-cta { color: #fcd34d; }
+.agp-course-temple .agp-course-cta { color: #6ee7b7; }
+
+.agp-course-live {
+  position: absolute;
+  top: 10px; right: 10px;
+  z-index: 2;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.65rem; font-weight: 900; letter-spacing: 0.08em;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.25);
+  backdrop-filter: blur(6px);
+}
+.agp-course-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239,68,68,0.8);
+  animation: agp-pulse 1.3s ease-in-out infinite;
+}
+@keyframes agp-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
 .agp-boot { min-height: 40vh; display: inline-flex; gap: 10px; align-items: center; padding: 24px; color: #bda6ff; }
 
 .agp-hero {
