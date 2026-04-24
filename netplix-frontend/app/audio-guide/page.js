@@ -113,6 +113,17 @@ function AudioGuidePageInner() {
   // 카드 클릭 시 열리는 상세 모달 대상
   const [detailItem, setDetailItem] = useState(null);
 
+  /*
+   * 4대 코스 카드 "탭 = 즉시 재생" UX를 위한 플래그.
+   * 카드 클릭 → 필터 적용 → 새 items 로드 → useEffect 에서 첫 번째 오디오를 자동 재생.
+   *
+   * activatedCourse 는 UX 피드백(토스트) 문구와 결과 스크롤 타깃팅에 활용.
+   */
+  const [autoplayArm, setAutoplayArm] = useState(false);
+  const [activatedCourse, setActivatedCourse] = useState(null); // { title, sub }
+  const [courseToast, setCourseToast] = useState(null); // { kind: 'playing'|'empty'|'noaudio', title }
+  const resultsRef = useRef(null);
+
   // URL 동기화 helper
   const syncUrl = useCallback((next) => {
     const params = new URLSearchParams();
@@ -225,6 +236,71 @@ function AudioGuidePageInner() {
     setWantNearby(false);
     syncUrl({ type, keyword: q });
   };
+
+  /*
+   * 4대 시그니처 코스 카드 트리거.
+   *
+   * 흐름:
+   *  1) 필요한 필터(키워드/nearby) 를 상태에 반영 → useEffect 가 /search 또는 /nearby 호출
+   *  2) autoplayArm=true 로 "다음 items 로드가 끝나면 첫 오디오를 바로 재생" 예약
+   *  3) 결과 섹션으로 부드러운 스크롤 (사용자가 필터 적용 사실을 즉각 인지)
+   *  4) 사용자에게 "{코스명} 재생 준비 중…" 토스트 노출
+   */
+  const launchCourse = ({ kind, title, sc }) => {
+    stopPlayback();
+    // 이전 키워드 결과가 잔존한 상태에서 autoplayArm useEffect 가 즉시 발동하는 걸 막기 위해
+    // 결과를 일단 비우고 로딩 상태로 리셋. 새 필터에 의해 load() 가 다시 채워준다.
+    setItems([]);
+    setLoading(true);
+    setActivatedCourse({ title });
+    setCourseToast({ kind: "loading", title });
+    setAutoplayArm(true);
+    if (kind === "keyword") {
+      // theme 탭에서만 적용 (관광지 해설 쪽이 오디오 커버리지가 넓다)
+      if (type !== "theme") {
+        setType("theme");
+        syncUrl({ type: "theme", keyword: activeLang === "en" ? sc.en : sc.ko });
+      }
+      applyShortcutKeyword(sc);
+    } else if (kind === "nearby") {
+      requestNearby();
+    }
+    // 리스트 섹션으로 스크롤
+    setTimeout(() => {
+      if (resultsRef.current) {
+        resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 120);
+  };
+
+  /*
+   * items 변경 감지: autoplayArm 이 켜져 있고 새 결과가 들어오면
+   * 첫 번째 유효 오디오 트랙을 바로 재생한다. 결과가 없거나 오디오가 전혀 없으면
+   * 토스트로 사용자에게 알려준다 (대체 조치 안내).
+   */
+  useEffect(() => {
+    if (!autoplayArm) return;
+    if (loading) return; // 로딩 완료까지 대기
+    const firstPlayable = items.find((x) => !!x?.audioUrl);
+    if (firstPlayable) {
+      togglePlay(firstPlayable);
+      setCourseToast({ kind: "playing", title: activatedCourse?.title || "", name: firstPlayable.title });
+    } else if (items.length > 0) {
+      setCourseToast({ kind: "noaudio", title: activatedCourse?.title || "", count: items.length });
+    } else {
+      setCourseToast({ kind: "empty", title: activatedCourse?.title || "" });
+    }
+    setAutoplayArm(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, loading, autoplayArm]);
+
+  // 코스 토스트 자동 dismiss
+  useEffect(() => {
+    if (!courseToast) return;
+    const ttl = courseToast.kind === "loading" ? 8000 : 5000;
+    const h = setTimeout(() => setCourseToast(null), ttl);
+    return () => clearTimeout(h);
+  }, [courseToast]);
 
   const applyRegion = (region) => {
     setKeywordInput(region);
@@ -430,12 +506,12 @@ function AudioGuidePageInner() {
               "영화·K-드라마 속 그 장면, 그 장소. 감독이 왜 이 배경을 골랐는지 현장에서 귀로 듣기."
             )}
             active={!wantNearby && (keyword === "영화" || keyword === "드라마" || keyword === "K-드라마" || keyword === "Film Location" || keyword === "K-Drama")}
-            actionLabel={t("audioGuide.courses.film.cta", "드라마 촬영지 듣기")}
+            actionLabel={t("audioGuide.courses.film.cta", "바로 재생")}
             onClick={() =>
-              applyShortcutKeyword({
-                key: "드라마",
-                ko: "드라마",
-                en: "K-Drama",
+              launchCourse({
+                kind: "keyword",
+                title: t("audioGuide.courses.film.title", "촬영지 · Cine Set Trail"),
+                sc: { key: "드라마", ko: "드라마", en: "K-Drama" },
               })
             }
           />
@@ -453,9 +529,14 @@ function AudioGuidePageInner() {
                 ? t("audioGuide.nearby.locating", "위치 확인 중…")
                 : wantNearby
                 ? t("audioGuide.courses.dvd.on", "내 주변 듣는 중")
-                : t("audioGuide.courses.dvd.cta", "내 위치로 시작")
+                : t("audioGuide.courses.dvd.cta", "내 위치로 재생")
             }
-            onClick={requestNearby}
+            onClick={() =>
+              launchCourse({
+                kind: "nearby",
+                title: t("audioGuide.courses.dvd.title", "DVD 반납길 · Return Route"),
+              })
+            }
             disabled={nearbyStatus === "locating"}
           />
           <CourseCard
@@ -467,12 +548,12 @@ function AudioGuidePageInner() {
               "경복궁·창덕궁·덕수궁의 담장 너머 왕실 이야기. 걸으며 듣는 조선의 하루."
             )}
             active={!wantNearby && (keyword === "궁궐" || keyword === "Palace")}
-            actionLabel={t("audioGuide.courses.palace.cta", "궁궐 이야기 듣기")}
+            actionLabel={t("audioGuide.courses.palace.cta", "바로 재생")}
             onClick={() =>
-              applyShortcutKeyword({
-                key: "궁궐",
-                ko: "궁궐",
-                en: "Palace",
+              launchCourse({
+                kind: "keyword",
+                title: t("audioGuide.courses.palace.title", "궁궐 · Royal Whisper"),
+                sc: { key: "궁궐", ko: "궁궐", en: "Palace" },
               })
             }
           />
@@ -485,17 +566,84 @@ function AudioGuidePageInner() {
               "불국사·해인사·통도사… 스님의 발걸음을 따라가는 명상의 오디오 트레일."
             )}
             active={!wantNearby && (keyword === "사찰" || keyword === "Temple")}
-            actionLabel={t("audioGuide.courses.temple.cta", "사찰 이야기 듣기")}
+            actionLabel={t("audioGuide.courses.temple.cta", "바로 재생")}
             onClick={() =>
-              applyShortcutKeyword({
-                key: "사찰",
-                ko: "사찰",
-                en: "Temple",
+              launchCourse({
+                kind: "keyword",
+                title: t("audioGuide.courses.temple.title", "사찰 · Mindful Path"),
+                sc: { key: "사찰", ko: "사찰", en: "Temple" },
               })
             }
           />
         </div>
       </section>
+
+      {/*
+       * 코스 트리거 후 사용자 피드백 토스트.
+       *   - loading : 결과 로딩 중 ("재생 준비 중…")
+       *   - playing : 첫 오디오 재생 시작 ("{트랙명} 재생 중")
+       *   - noaudio : 결과는 있으나 오디오 URL 없음 ("카드에서 원하는 항목을 눌러 재생")
+       *   - empty   : 결과 0건 ("다른 코스를 시도")
+       */}
+      {courseToast && (
+        <div className={`agp-course-toast agp-toast-${courseToast.kind}`} role="status">
+          <span className="agp-toast-icon">
+            {courseToast.kind === "playing" ? (
+              <Play size={14} />
+            ) : courseToast.kind === "loading" ? (
+              <Headphones size={14} />
+            ) : (
+              <Volume2 size={14} />
+            )}
+          </span>
+          <span className="agp-toast-body">
+            {courseToast.kind === "loading" && (
+              <>
+                <b>{courseToast.title}</b>
+                <span>{t("audioGuide.toast.loading", "오디오 가이드 찾는 중…")}</span>
+              </>
+            )}
+            {courseToast.kind === "playing" && (
+              <>
+                <b>{courseToast.title}</b>
+                <span>
+                  {t("audioGuide.toast.playing", "재생 시작 ·")} {courseToast.name}
+                </span>
+              </>
+            )}
+            {courseToast.kind === "noaudio" && (
+              <>
+                <b>{courseToast.title}</b>
+                <span>
+                  {t(
+                    "audioGuide.toast.noaudio",
+                    "오디오 파일이 없는 항목만 있어요. 카드에서 ▶를 눌러 다른 트랙을 시도해 보세요."
+                  )}
+                </span>
+              </>
+            )}
+            {courseToast.kind === "empty" && (
+              <>
+                <b>{courseToast.title}</b>
+                <span>
+                  {t(
+                    "audioGuide.toast.empty",
+                    "검색 결과가 없어요. 다른 코스나 지역 칩을 시도해 보세요."
+                  )}
+                </span>
+              </>
+            )}
+          </span>
+          <button
+            type="button"
+            className="agp-toast-close"
+            onClick={() => setCourseToast(null)}
+            aria-label="close"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
 
       {/* Chips */}
       <div className="agp-chips">
@@ -535,7 +683,7 @@ function AudioGuidePageInner() {
       </div>
 
       {/* Results */}
-      <main className="agp-main">
+      <main className="agp-main" ref={resultsRef}>
         <div className="agp-meta">
           <span className="agp-meta-count">
             {loading
@@ -934,6 +1082,64 @@ const agpCss = `
   animation: agp-pulse 1.3s ease-in-out infinite;
 }
 @keyframes agp-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ===== 코스 토스트 (카드 클릭 후 피드백) ===== */
+.agp-course-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 110px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(520px, calc(100% - 32px));
+  padding: 10px 12px 10px 14px;
+  border-radius: 14px;
+  background: rgba(15, 10, 28, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.7);
+  color: #f5f5ff;
+  backdrop-filter: blur(10px);
+  animation: agp-toast-in 0.25s ease-out;
+}
+@keyframes agp-toast-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+.agp-toast-playing { border-color: rgba(16, 185, 129, 0.6); box-shadow: 0 20px 50px -18px rgba(16, 185, 129, 0.45); }
+.agp-toast-loading { border-color: rgba(167, 139, 250, 0.55); }
+.agp-toast-noaudio { border-color: rgba(250, 204, 21, 0.55); }
+.agp-toast-empty   { border-color: rgba(244, 63, 94, 0.55); }
+
+.agp-toast-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  flex: 0 0 auto;
+}
+.agp-toast-playing .agp-toast-icon { color: #6ee7b7; background: rgba(16,185,129,0.2); }
+.agp-toast-loading .agp-toast-icon { color: #c4b5fd; background: rgba(167,139,250,0.2); }
+.agp-toast-noaudio .agp-toast-icon { color: #fde68a; background: rgba(250,204,21,0.2); }
+.agp-toast-empty   .agp-toast-icon { color: #fda4af; background: rgba(244,63,94,0.2); }
+
+.agp-toast-body {
+  display: flex; flex-direction: column; gap: 2px;
+  font-size: 0.82rem; line-height: 1.35;
+  min-width: 0;
+}
+.agp-toast-body b { font-size: 0.78rem; color: #f5f5ff; font-weight: 800; }
+.agp-toast-body span { color: #cbd5e1; font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.agp-toast-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: 0; color: #94a3b8; cursor: pointer;
+  width: 22px; height: 22px;
+  border-radius: 999px;
+}
+.agp-toast-close:hover { background: rgba(255,255,255,0.08); color: #fff; }
 
 .agp-boot { min-height: 40vh; display: inline-flex; gap: 10px; align-items: center; padding: 24px; color: #bda6ff; }
 
