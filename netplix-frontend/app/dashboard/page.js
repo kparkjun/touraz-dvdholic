@@ -1821,6 +1821,127 @@ function DashboardContent() {
           ) : null;
         })()}
 
+        {/* CTA — 데이터로 잇는 산책 (TarRlteTarService1 기반 /related-spots) */}
+        <div
+          style={{
+            marginTop: 32,
+            marginBottom: 8,
+            position: "relative",
+            borderRadius: 20,
+            overflow: "hidden",
+            border: "1px solid rgba(165,180,252,0.18)",
+            background:
+              "radial-gradient(120% 140% at 0% 0%, rgba(99,102,241,0.18), transparent), radial-gradient(120% 140% at 100% 100%, rgba(236,72,153,0.14), transparent), linear-gradient(160deg, rgba(15,23,42,0.85), rgba(8,12,28,0.92))",
+            boxShadow: "0 18px 40px rgba(0,0,0,0.45)",
+          }}
+        >
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage:
+                "radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)",
+              backgroundSize: "18px 18px",
+              opacity: 0.35,
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+              padding: "28px 22px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 12px",
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                color: "#a5b4fc",
+                fontSize: 11,
+                letterSpacing: 0.4,
+              }}
+            >
+              <Sparkles size={12} />
+              한국관광공사 빅데이터 · 함께 다녀간 곳
+            </div>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: "clamp(20px, 4.4vw, 26px)",
+                fontWeight: 800,
+                lineHeight: 1.3,
+                background:
+                  "linear-gradient(120deg, #fef3c7 0%, #fda4af 50%, #c4b5fd 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              조용한 명소 옆,
+              <br />
+              사람들은 어디로 갔을까
+            </h3>
+            <p
+              style={{
+                margin: 0,
+                color: "#cbd5e1",
+                fontSize: 13,
+                lineHeight: 1.7,
+                maxWidth: 420,
+              }}
+            >
+              한 곳을 떠올려 보세요.
+              <br />
+              그 곁을 거닐던 사람들이 다음으로 향한 자리들을
+              <br />
+              데이터가 잔잔히 보여드릴게요.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/related-spots")}
+              style={{
+                marginTop: 6,
+                padding: "12px 22px",
+                borderRadius: 999,
+                border: "none",
+                cursor: "pointer",
+                fontSize: 14,
+                fontWeight: 800,
+                color: "#fff",
+                background:
+                  "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)",
+                boxShadow:
+                  "0 10px 30px rgba(139,92,246,0.35), 0 4px 12px rgba(236,72,153,0.25)",
+                transition: "transform 0.18s ease, box-shadow 0.18s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow =
+                  "0 14px 36px rgba(139,92,246,0.45), 0 6px 14px rgba(236,72,153,0.3)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow =
+                  "0 10px 30px rgba(139,92,246,0.35), 0 4px 12px rgba(236,72,153,0.25)";
+              }}
+            >
+              잔잔히 둘러보기
+            </button>
+          </div>
+        </div>
+
         {/* Footer - 비 오는 거리 배경 이미지 (화면 좌우 꽉 채움) */}
         <footer
           className="dashboard-footer"

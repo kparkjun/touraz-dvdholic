@@ -90,6 +90,21 @@ visitkorea:
   batch:
     default-period-days: 7
     page-size: 100
+  # 관광지별 연관 관광지 정보 (TarRlteTarService1) - 공공데이터 포털
+  # Base URL: apis.data.go.kr/B551011/TarRlteTarService1
+  # 오퍼레이션:
+  #   - /areaBasedList1 : 시·군·구 기반 관광지별 연관 관광지 목록 (필수: areaCd, 선택: signguCd)
+  #   - /searchKeyword1 : 키워드 검색 관광지별 연관 관광지 목록 (필수: keyword)
+  # 의미: 기준 관광지(tAtsNm) 를 다녀간 관광객들이 함께/이어서 방문한 연관 관광지(rlteTatsNm)
+  #       를 KTO 빅데이터(통신·카드·내비) 로 산출한 결과. rlteRank 가 작을수록 함께 방문 빈도가 높음.
+  # 일일 트래픽 1,000회 → 어댑터에서 6h in-memory TTL 캐시 (모드+키 단위) 유지.
+  # serviceKey: 우선 VISITKOREA_RELATED_SERVICE_KEY → 미설정 시 공용 VISITKOREA_SERVICE_KEY 로 fallback.
+  related:
+    base-url: https://apis.data.go.kr/B551011/TarRlteTarService1
+    service-key: ${VISITKOREA_RELATED_SERVICE_KEY:${VISITKOREA_SERVICE_KEY:}}
+    area-based: ${visitkorea.related.base-url}/areaBasedList1
+    search-keyword: ${visitkorea.related.base-url}/searchKeyword1
+    cache-minutes: 360
   # 관광공모전(사진) 수상작 정보 (공공데이터 15145706)
   # https://apis.data.go.kr/B551011/PhokoAwrdService
   # 엔드포인트: /phokoAwrdList (수상작 리스트), /ldongCode (법정동 광역 코드)
