@@ -3,7 +3,7 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MapPin, Loader2, ArrowRight, Hash } from 'lucide-react';
+import { Sparkles, MapPin, Loader2, ArrowRight, Hash, X, ExternalLink, Compass, Search as SearchIcon, Navigation } from 'lucide-react';
 import axios from '@/lib/axiosConfig';
 
 // "조용한 명소 + 함께 가는 명소" — 잔잔한 데이터 산책 화면.
@@ -36,6 +36,8 @@ function RelatedSpotsInner() {
   const [touched, setTouched] = useState(Boolean(initialKeyword));
   const [error, setError] = useState(null);
   const [unsupported, setUnsupported] = useState(false);
+  // 클릭한 연관 명소 + 기준 명소 정보를 함께 담아 상세 모달에 전달.
+  const [selectedSpot, setSelectedSpot] = useState(null);
   const lastReqRef = useRef(0);
 
   const runKeywordSearch = async (q) => {
@@ -277,7 +279,11 @@ function RelatedSpotsInner() {
                 기준 명소 {groups.length}곳 · 함께 다녀간 자리 {totalRelated}곳을 찾았어요
               </div>
               {groups.map((g, idx) => (
-                <GroupCard key={`${g.baseSpot}-${idx}`} group={g} />
+                <GroupCard
+                  key={`${g.baseSpot}-${idx}`}
+                  group={g}
+                  onPickRelated={(picked) => setSelectedSpot(picked)}
+                />
               ))}
             </motion.div>
           )}
@@ -305,6 +311,17 @@ function RelatedSpotsInner() {
         </div>
       </div>
 
+      {/* 상세 모달 */}
+      <AnimatePresence>
+        {selectedSpot && (
+          <SpotDetailModal
+            spot={selectedSpot}
+            onClose={() => setSelectedSpot(null)}
+            onSearchAgain={(kw) => { setKeyword(kw); runKeywordSearch(kw); }}
+          />
+        )}
+      </AnimatePresence>
+
       <style jsx>{`
         .anim-spin {
           display: inline-block;
@@ -317,8 +334,7 @@ function RelatedSpotsInner() {
   );
 }
 
-function GroupCard({ group }) {
-  const router = useRouter();
+function GroupCard({ group, onPickRelated }) {
   const region = [group.areaName, group.signguName].filter(Boolean).join(' · ');
   return (
     <motion.div
@@ -338,13 +354,14 @@ function GroupCard({ group }) {
         {region && <span style={{ fontSize: 11, color: '#a5b4fc' }}>· {region}</span>}
       </div>
       <p style={{ margin: '0 0 12px', fontSize: 12, color: '#94a3b8' }}>
-        이 곳을 다녀간 사람들이 함께 / 이어서 향한 자리들이에요.
+        이 곳을 다녀간 사람들이 함께 / 이어서 향한 자리들이에요. 한 곳을 눌러보면 잔잔하게 길잡이가 펼쳐집니다.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
         {(group.related || []).map((r, i) => (
-          <div
+          <button
+            type="button"
             key={`${r.relatedSpot}-${i}`}
-            onClick={() => router.push(`/related-spots?q=${encodeURIComponent(r.relatedSpot || '')}`)}
+            onClick={() => onPickRelated && onPickRelated({ ...r, baseSpot: group.baseSpot, baseAreaName: group.areaName, baseSignguName: group.signguName })}
             style={{
               cursor: 'pointer',
               padding: '10px 12px',
@@ -354,6 +371,17 @@ function GroupCard({ group }) {
               display: 'flex',
               flexDirection: 'column',
               gap: 4,
+              textAlign: 'left',
+              color: 'inherit',
+              transition: 'background 0.15s ease, border-color 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(99,102,241,0.18)';
+              e.currentTarget.style.borderColor = 'rgba(165,180,252,0.45)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(0,0,0,0.25)';
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -368,10 +396,267 @@ function GroupCard({ group }) {
                 <Hash size={10} /> {r.category}
               </div>
             )}
-          </div>
+          </button>
         ))}
       </div>
     </motion.div>
+  );
+}
+
+/**
+ * 연관 관광지 상세 모달 (바텀시트 풍).
+ *
+ * 현재 KTO TarRlteTarService1 응답에 좌표/이미지가 포함되지 않아 외부 지도 검색 링크로 깊이를 잇는다.
+ * KorService2 활용신청이 승인되면 백엔드 /api/v1/tour/spot/brief 를 추가해 이미지/주소/개요를 페치하도록
+ * 확장 예정 (KEY_FORBIDDEN 으로 현재는 폴백 UI 만 제공).
+ */
+function SpotDetailModal({ spot, onClose, onSearchAgain }) {
+  // 스크롤 잠금
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => { if (e.key === 'Escape') onClose && onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  if (!spot) return null;
+
+  const title = spot.relatedSpot || '이름 미상';
+  const baseSpot = spot.baseSpot;
+  const baseRegion = [spot.baseAreaName, spot.baseSignguName].filter(Boolean).join(' · ');
+  const targetRegion = [spot.relatedAreaName, spot.relatedSignguName].filter(Boolean).join(' · ');
+
+  // 지도 검색은 시·군·구 + 명소 이름을 합쳐 정확도를 높임.
+  const mapQuery = encodeURIComponent(
+    [spot.relatedSignguName, title].filter(Boolean).join(' ')
+  );
+  const naverMapUrl = `https://map.naver.com/v5/search/${mapQuery}`;
+  const kakaoMapUrl = `https://map.kakao.com/?q=${mapQuery}`;
+  const googleSearchUrl = `https://www.google.com/search?q=${mapQuery}`;
+
+  // 이 곳을 새 출발점으로 다시 검색해 보기 (시·군·구 이름이 사전에 있을 때만 자연스럽게 동작).
+  const followUpKeyword = spot.relatedSignguName || spot.relatedAreaName || '';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 60,
+        background: 'rgba(4, 6, 12, 0.7)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        padding: '0 0 0 0',
+      }}
+    >
+      <motion.div
+        initial={{ y: 30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 30, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 26 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 560,
+          maxHeight: '88vh',
+          overflowY: 'auto',
+          background: 'linear-gradient(180deg, rgba(15,23,42,0.98), rgba(8,12,28,0.98))',
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          border: '1px solid rgba(165,180,252,0.18)',
+          borderBottom: 'none',
+          boxShadow: '0 -24px 60px rgba(0,0,0,0.55)',
+          padding: '20px 22px 28px',
+          color: '#f5f5f5',
+          position: 'relative',
+        }}
+      >
+        {/* drag handle */}
+        <div
+          aria-hidden
+          style={{
+            width: 44,
+            height: 5,
+            borderRadius: 999,
+            background: 'rgba(255,255,255,0.18)',
+            margin: '0 auto 14px',
+          }}
+        />
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="닫기"
+          style={{
+            position: 'absolute',
+            top: 14,
+            right: 14,
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.04)',
+            color: '#cbd5e1',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <X size={16} />
+        </button>
+
+        {/* 헤더: 순위 + 이름 + 지역 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+          <RankBadge rank={spot.rank} />
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 'clamp(20px, 4.6vw, 26px)',
+              fontWeight: 900,
+              lineHeight: 1.25,
+              background: 'linear-gradient(120deg, #fef3c7 0%, #fda4af 50%, #c4b5fd 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            {title}
+          </h2>
+        </div>
+        {targetRegion && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#a5b4fc', marginBottom: 14 }}>
+            <MapPin size={12} />
+            {targetRegion}
+          </div>
+        )}
+
+        {/* 카테고리 */}
+        {spot.category && (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 12px',
+              borderRadius: 999,
+              background: 'rgba(252,165,165,0.08)',
+              border: '1px solid rgba(252,165,165,0.22)',
+              color: '#fca5a5',
+              fontSize: 12,
+              marginBottom: 14,
+            }}
+          >
+            <Hash size={12} />
+            {spot.category}
+          </div>
+        )}
+
+        {/* 잔잔 카피: 이 자리가 기준 명소와 어떤 관계인지 */}
+        <div
+          style={{
+            margin: '6px 0 18px',
+            padding: '14px 16px',
+            borderRadius: 14,
+            background: 'rgba(99,102,241,0.10)',
+            border: '1px solid rgba(165,180,252,0.18)',
+            fontSize: 13,
+            lineHeight: 1.8,
+            color: '#cbd5e1',
+          }}
+        >
+          {baseSpot ? (
+            <>
+              <span style={{ color: '#fef3c7', fontWeight: 700 }}>{baseSpot}</span>
+              {baseRegion && <span style={{ color: '#94a3b8' }}> · {baseRegion}</span>}
+              <br />
+              를 다녀간 사람들이 {spot.rank ? <strong style={{ color: '#fff' }}>{spot.rank}순위</strong> : '함께'} 로 발걸음을 옮긴 자리예요.
+            </>
+          ) : (
+            <>이 곳에서 사람들이 다음으로 향했던 자리예요.</>
+          )}
+        </div>
+
+        {/* 외부 지도 / 검색 — 깊이를 잇는 길잡이 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 16 }}>
+          <ExternalAction icon={<Navigation size={15} />} label="네이버 지도" href={naverMapUrl} accent="#22c55e" />
+          <ExternalAction icon={<MapPin size={15} />}     label="카카오 맵"   href={kakaoMapUrl} accent="#fde047" />
+          <ExternalAction icon={<SearchIcon size={15} />} label="더 찾아보기"  href={googleSearchUrl} accent="#a5b4fc" />
+        </div>
+
+        {/* "이 곳에서 출발해 보기" — 사전 등록된 시·군·구일 때만 의미가 있어 안내 톤으로 보여줌 */}
+        {followUpKeyword && (
+          <button
+            type="button"
+            onClick={() => {
+              onSearchAgain && onSearchAgain(followUpKeyword);
+              onClose && onClose();
+            }}
+            style={{
+              width: '100%',
+              padding: '14px 18px',
+              borderRadius: 14,
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 800,
+              color: '#fff',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
+              boxShadow: '0 12px 30px rgba(139,92,246,0.4)',
+            }}
+          >
+            <Compass size={16} />
+            {followUpKeyword} 에서 다시 출발해 보기
+          </button>
+        )}
+
+        <div style={{ marginTop: 14, fontSize: 11, color: 'rgba(203,213,225,0.55)', textAlign: 'center', lineHeight: 1.7 }}>
+          좌표·사진·운영시간 같은 깊은 정보는<br />
+          외부 지도/검색에서 잔잔히 이어 보세요.
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function ExternalAction({ icon, label, href, accent }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        padding: '12px 14px',
+        borderRadius: 12,
+        border: `1px solid ${accent}55`,
+        background: `${accent}14`,
+        color: '#f5f5f5',
+        fontSize: 13,
+        fontWeight: 700,
+        textDecoration: 'none',
+      }}
+    >
+      <span style={{ color: accent, display: 'inline-flex' }}>{icon}</span>
+      {label}
+      <ExternalLink size={12} style={{ opacity: 0.6 }} />
+    </a>
   );
 }
 
