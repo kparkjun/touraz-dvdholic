@@ -9,7 +9,9 @@ import fast.campus.netplix.tour.RelatedTouristSpot;
  * @param relatedSpot       연관 관광지명
  * @param areaName          기준 관광지의 광역명
  * @param signguName        기준 관광지의 시·군·구명
+ * @param relatedAreaCd     연관 관광지의 BJD 광역 코드(2자리, 예: "46"=전남) — 후속 brief 조회용
  * @param relatedAreaName   연관 관광지의 광역명 (있을 때)
+ * @param relatedSignguCd   연관 관광지의 BJD 시·군·구 코드(5자리)
  * @param relatedSignguName 연관 관광지의 시·군·구명 (있을 때)
  * @param category          카테고리 라벨 (소→중→대 우선 순) — UI 노출용
  * @param rank              연관 순위 (작을수록 함께 방문 빈도 높음)
@@ -20,7 +22,9 @@ public record RelatedTouristSpotResponse(
         String relatedSpot,
         String areaName,
         String signguName,
+        String relatedAreaCd,
         String relatedAreaName,
+        String relatedSignguCd,
         String relatedSignguName,
         String category,
         Integer rank,
@@ -32,7 +36,9 @@ public record RelatedTouristSpotResponse(
                 s.getRlteTatsNm(),
                 s.getAreaName(),
                 s.getSignguName(),
+                s.getRlteRegnCd(),
                 s.getRlteRegnNm(),
+                s.getRlteSignguCd(),
                 s.getRlteSignguNm(),
                 pickCategory(s),
                 s.getRlteRank(),

@@ -411,7 +411,12 @@ function GroupCard({ group, onPickRelated }) {
  * 확장 예정 (KEY_FORBIDDEN 으로 현재는 폴백 UI 만 제공).
  */
 function SpotDetailModal({ spot, onClose, onSearchAgain }) {
-  // 스크롤 잠금
+  // brief: KTO KorWith/Pet/Eng searchKeyword2 폴백을 통해 이미지/주소/전화/좌표를 가져온다.
+  // 모달이 마운트되면 비동기로 페치하고, 도착하면 부드럽게 추가 노출.
+  // 결과가 비어 있으면(앞 3개 서비스 모두 매칭 0건) 기존 외부 링크 폴백 그대로.
+  const [brief, setBrief] = useState(null);
+  const [briefLoading, setBriefLoading] = useState(false);
+
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -422,6 +427,21 @@ function SpotDetailModal({ spot, onClose, onSearchAgain }) {
       window.removeEventListener('keydown', onKey);
     };
   }, [onClose]);
+
+  useEffect(() => {
+    let alive = true;
+    if (!spot || !spot.relatedSpot) { setBrief(null); return; }
+    setBrief(null);
+    setBriefLoading(true);
+    const params = { q: spot.relatedSpot };
+    if (spot.relatedAreaCd) params.areaCode = spot.relatedAreaCd;
+    axios
+      .get('/api/v1/tour/spot/brief', { params })
+      .then((res) => { if (alive) setBrief(res?.data?.data ?? null); })
+      .catch(() => { if (alive) setBrief(null); })
+      .finally(() => { if (alive) setBriefLoading(false); });
+    return () => { alive = false; };
+  }, [spot]);
 
   if (!spot) return null;
 
@@ -540,6 +560,9 @@ function SpotDetailModal({ spot, onClose, onSearchAgain }) {
           </div>
         )}
 
+        {/* brief: 이미지 + 주소 + 전화 — KorWith/Pet/Eng 폴백으로 가져옴 */}
+        <SpotBriefSection brief={brief} loading={briefLoading} title={title} />
+
         {/* 카테고리 */}
         {spot.category && (
           <div
@@ -624,11 +647,144 @@ function SpotDetailModal({ spot, onClose, onSearchAgain }) {
         )}
 
         <div style={{ marginTop: 14, fontSize: 11, color: 'rgba(203,213,225,0.55)', textAlign: 'center', lineHeight: 1.7 }}>
-          좌표·사진·운영시간 같은 깊은 정보는<br />
-          외부 지도/검색에서 잔잔히 이어 보세요.
+          {brief
+            ? <>운영시간·예약 같은 더 깊은 정보는<br />외부 지도/검색에서 잔잔히 이어 보세요.</>
+            : <>좌표·사진·운영시간 같은 깊은 정보는<br />외부 지도/검색에서 잔잔히 이어 보세요.</>}
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+/**
+ * "간단 상세" 섹션 — 이미지 + 주소 + 전화. KorWith / KorPet / Eng 의 searchKeyword2 폴백으로
+ * 채워진 brief 가 있을 때만 표시한다. 로딩 중에는 스켈레톤 한 줄, 데이터 부재 시 침묵(외부 링크로 폴백).
+ *
+ * <p>모든 결과가 KTO 측의 일반 관광 정보라 외부 출처(naver/kakao)와 다르게 사진의 권리/저작권 주체는
+ * KTO 라 별도 표기가 안전. 카드 하단에 "출처: 한국관광공사 OOServiceN" 워터마크를 잔잔히 노출.
+ */
+function SpotBriefSection({ brief, loading, title }) {
+  if (!brief && !loading) return null;
+  if (!brief && loading) {
+    return (
+      <div
+        style={{
+          margin: '0 0 14px',
+          padding: '14px 16px',
+          borderRadius: 14,
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          fontSize: 12,
+          color: '#94a3b8',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <Loader2 size={14} className="anim-spin" /> 한국관광공사 풍경을 가만히 가져오는 중…
+      </div>
+    );
+  }
+
+  const sourceLabel =
+    brief.source === 'with'
+      ? '한국관광공사 무장애여행정보'
+      : brief.source === 'pet'
+      ? '한국관광공사 반려동물 동반정보'
+      : brief.source === 'eng'
+      ? '한국관광공사 영문 관광정보'
+      : '한국관광공사';
+
+  const fullAddress = [brief.address, brief.addressSub].filter(Boolean).join(' ');
+  const showImage = !!brief.firstImage;
+  const showAlt = !showImage && !!brief.firstImage2;
+  const heroSrc = showImage ? brief.firstImage : brief.firstImage2;
+
+  return (
+    <div
+      style={{
+        margin: '0 0 14px',
+        borderRadius: 14,
+        overflow: 'hidden',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.07)',
+      }}
+    >
+      {(showImage || showAlt) && (
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            aspectRatio: '16/9',
+            background: 'rgba(0,0,0,0.35)',
+            overflow: 'hidden',
+          }}
+        >
+          {/* 외부 호스트 이미지라 next/image 대신 plain img 사용 (cms.visitkorea.or.kr) */}
+          <img
+            src={heroSrc}
+            alt={title}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              left: 0, right: 0, bottom: 0,
+              padding: '40px 14px 10px',
+              fontSize: 11,
+              color: 'rgba(255,255,255,0.85)',
+              background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 100%)',
+              textAlign: 'right',
+            }}
+          >
+            출처: {sourceLabel}
+          </div>
+        </div>
+      )}
+
+      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {brief.title && brief.title !== title && (
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>
+            <span style={{ color: '#cbd5e1' }}>한국관광공사 표기</span> · {brief.title}
+          </div>
+        )}
+        {fullAddress && (
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#e2e8f0', lineHeight: 1.6 }}>
+            <MapPin size={14} style={{ color: '#a5b4fc', marginTop: 2, flexShrink: 0 }} />
+            <span>{fullAddress}</span>
+          </div>
+        )}
+        {brief.tel && (
+          <a
+            href={`tel:${brief.tel.replace(/[^0-9+]/g, '')}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 13,
+              color: '#fde68a',
+              textDecoration: 'none',
+            }}
+          >
+            <ExternalLink size={13} />
+            {brief.tel}
+          </a>
+        )}
+        {!showImage && !showAlt && (
+          <div style={{ fontSize: 11, color: 'rgba(203,213,225,0.55)' }}>
+            출처: {sourceLabel}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
