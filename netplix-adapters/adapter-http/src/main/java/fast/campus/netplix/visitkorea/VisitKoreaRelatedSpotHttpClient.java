@@ -73,13 +73,16 @@ public class VisitKoreaRelatedSpotHttpClient implements RelatedTouristSpotPort {
     /**
      * 키워드 검색.
      *
-     * <p>구현: 키워드를 {@link KoreanPlaceCodes} 로 해석해 (areaCd, signguCd) 를 얻은 뒤
-     * /searchKeyword1 호출. 사전 미등록 키워드는 빈 결과를 반환한다(사용자가 지역을 직접 고르도록 유도).
+     * <p>구현 노트: KTO {@code /searchKeyword1} 는 "기준 관광지명(tAtsNm) 에 키워드가 포함된 행만"
+     * 필터하므로, 사용자가 시·군·구 이름("여수","경주") 을 입력하면 0 건이 나오는 경우가 많다.
+     * 사전에 매핑된 (areaCd, signguCd) 의 해당 시·군·구 전체를 보여주는 게 사용자 의도("그 동네에서
+     * 사람들이 함께 다녀간 자리들") 에 더 부합하므로 {@code /areaBasedList1} 로 라우팅한다.
+     * 사전 미등록 키워드는 빈 결과를 반환한다(사용자가 지역을 직접 고르도록 유도).
      */
     @Override
     public List<RelatedTouristSpot> fetchByKeyword(String keyword, int limit) {
         if (!isConfigured() || keyword == null || keyword.isBlank()) return List.of();
-        if (!notBlank(searchKeywordUrl)) return List.of();
+        if (!notBlank(areaBasedUrl)) return List.of();
 
         Optional<KoreanPlaceCodes.KoreanPlace> place = KoreanPlaceCodes.findByKeyword(keyword);
         if (place.isEmpty()) {
@@ -89,14 +92,13 @@ public class VisitKoreaRelatedSpotHttpClient implements RelatedTouristSpotPort {
 
         KoreanPlaceCodes.KoreanPlace p = place.get();
         return fetchWithBaseYmFallback(
-                "kw|" + keyword.trim() + "|" + p.areaCd() + "|" + p.signguCd(),
+                "kw|" + p.areaCd() + "|" + p.signguCd(),
                 ym -> {
                     Map<String, String> params = new LinkedHashMap<>();
                     params.put("baseYm", ym);
                     params.put("areaCd", p.areaCd());
                     params.put("signguCd", p.signguCd());
-                    params.put("keyword", keyword.trim());
-                    return callListApi(searchKeywordUrl, params);
+                    return callListApi(areaBasedUrl, params);
                 },
                 limit
         );
@@ -201,8 +203,8 @@ public class VisitKoreaRelatedSpotHttpClient implements RelatedTouristSpotPort {
 
         VisitKoreaRelatedSpotResponse parsed;
         try {
-            // KTO 는 totalCount=0 일 때 items 를 빈 문자열("")로 내려준다 → null 로 사전 치환.
-            String safe = raw.replace("\"items\":\"\"", "\"items\":null");
+            // KTO 는 totalCount=0 일 때 items 를 빈 문자열("") 로 내려준다(콜론 뒤 공백 포함). null 로 사전 치환.
+            String safe = raw.replaceAll("\"items\"\\s*:\\s*\"\"", "\"items\":null");
             parsed = ObjectMapperUtil.toObject(safe, VisitKoreaRelatedSpotResponse.class);
         } catch (Exception ex) {
             log.warn("[KOR-RLT] 파싱 실패 url={} err={} sample={}", baseUrl, ex.getMessage(),
