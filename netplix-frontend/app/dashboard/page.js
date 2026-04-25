@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkles, ArrowRight, MapPin } from "lucide-react";
 import axios from "@/lib/axiosConfig";
 import { getApiBaseUrl } from "@/lib/apiConfig";
 import { Capacitor } from "@capacitor/core";
@@ -1822,17 +1822,20 @@ function DashboardContent() {
         })()}
 
         {/* CTA — 데이터로 잇는 산책 (TarRlteTarService1 기반 /related-spots) */}
-        <div
+        {/* 푸터 직전 노출. 충분히 크고 톤은 잔잔하게 — 카테고리 스크롤 끝에서도 분명히 보이도록. */}
+        <section
+          aria-label="조용한 명소 옆, 사람들은 어디로 갔을까"
           style={{
-            marginTop: 32,
-            marginBottom: 8,
+            marginTop: 56,
+            marginBottom: 16,
             position: "relative",
-            borderRadius: 20,
+            borderRadius: 24,
             overflow: "hidden",
-            border: "1px solid rgba(165,180,252,0.18)",
+            border: "1px solid rgba(165,180,252,0.22)",
             background:
-              "radial-gradient(120% 140% at 0% 0%, rgba(99,102,241,0.18), transparent), radial-gradient(120% 140% at 100% 100%, rgba(236,72,153,0.14), transparent), linear-gradient(160deg, rgba(15,23,42,0.85), rgba(8,12,28,0.92))",
-            boxShadow: "0 18px 40px rgba(0,0,0,0.45)",
+              "radial-gradient(120% 140% at 0% 0%, rgba(99,102,241,0.22), transparent 60%), radial-gradient(120% 140% at 100% 100%, rgba(236,72,153,0.18), transparent 60%), linear-gradient(160deg, rgba(15,23,42,0.92), rgba(8,12,28,0.96))",
+            boxShadow:
+              "0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset",
           }}
         >
           <div
@@ -1841,9 +1844,25 @@ function DashboardContent() {
               position: "absolute",
               inset: 0,
               backgroundImage:
-                "radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)",
-              backgroundSize: "18px 18px",
-              opacity: 0.35,
+                "radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px)",
+              backgroundSize: "20px 20px",
+              opacity: 0.4,
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              top: -120,
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: 480,
+              height: 240,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(closest-side, rgba(165,180,252,0.28), transparent)",
+              filter: "blur(8px)",
               pointerEvents: "none",
             }}
           />
@@ -1851,55 +1870,65 @@ function DashboardContent() {
             style={{
               position: "relative",
               zIndex: 1,
-              padding: "28px 22px",
+              padding: "clamp(40px, 7vw, 64px) clamp(20px, 4vw, 40px)",
               textAlign: "center",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 10,
+              gap: 16,
+              minHeight: "clamp(360px, 48vw, 460px)",
+              justifyContent: "center",
             }}
           >
             <div
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
-                padding: "4px 12px",
+                gap: 8,
+                padding: "8px 16px",
                 borderRadius: 999,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                color: "#a5b4fc",
-                fontSize: 11,
-                letterSpacing: 0.4,
+                background:
+                  "linear-gradient(135deg, rgba(99,102,241,0.18), rgba(236,72,153,0.18))",
+                border: "1px solid rgba(165,180,252,0.35)",
+                color: "#c7d2fe",
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: 0.6,
+                textTransform: "uppercase",
+                boxShadow: "0 4px 14px rgba(99,102,241,0.18)",
               }}
             >
-              <Sparkles size={12} />
+              <Sparkles size={14} />
               한국관광공사 빅데이터 · 함께 다녀간 곳
             </div>
+
             <h3
               style={{
-                margin: 0,
-                fontSize: "clamp(20px, 4.4vw, 26px)",
-                fontWeight: 800,
-                lineHeight: 1.3,
+                margin: "8px 0 0",
+                fontSize: "clamp(28px, 6.4vw, 44px)",
+                fontWeight: 900,
+                lineHeight: 1.22,
+                letterSpacing: "-0.02em",
                 background:
-                  "linear-gradient(120deg, #fef3c7 0%, #fda4af 50%, #c4b5fd 100%)",
+                  "linear-gradient(120deg, #fef3c7 0%, #fda4af 45%, #c4b5fd 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
+                textShadow: "0 2px 24px rgba(196,181,253,0.18)",
               }}
             >
               조용한 명소 옆,
               <br />
               사람들은 어디로 갔을까
             </h3>
+
             <p
               style={{
                 margin: 0,
                 color: "#cbd5e1",
-                fontSize: 13,
-                lineHeight: 1.7,
-                maxWidth: 420,
+                fontSize: "clamp(14px, 2.4vw, 16px)",
+                lineHeight: 1.85,
+                maxWidth: 520,
               }}
             >
               한 곳을 떠올려 보세요.
@@ -1908,39 +1937,89 @@ function DashboardContent() {
               <br />
               데이터가 잔잔히 보여드릴게요.
             </p>
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                gap: 8,
+                marginTop: 4,
+              }}
+            >
+              {[
+                "키워드로 따라가기",
+                "광역 17곳 빠른 탐색",
+                "함께 방문 빈도 1위부터",
+              ].map((tag) => (
+                <span
+                  key={tag}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 12px",
+                    borderRadius: 999,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "#e2e8f0",
+                    fontSize: 12,
+                  }}
+                >
+                  <MapPin size={12} />
+                  {tag}
+                </span>
+              ))}
+            </div>
+
             <button
               type="button"
               onClick={() => router.push("/related-spots")}
               style={{
-                marginTop: 6,
-                padding: "12px 22px",
+                marginTop: 20,
+                padding: "16px 32px",
                 borderRadius: 999,
                 border: "none",
                 cursor: "pointer",
-                fontSize: 14,
+                fontSize: "clamp(15px, 2.6vw, 17px)",
                 fontWeight: 800,
                 color: "#fff",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 10,
                 background:
                   "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)",
                 boxShadow:
-                  "0 10px 30px rgba(139,92,246,0.35), 0 4px 12px rgba(236,72,153,0.25)",
+                  "0 14px 40px rgba(139,92,246,0.45), 0 6px 16px rgba(236,72,153,0.3)",
                 transition: "transform 0.18s ease, box-shadow 0.18s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.transform = "translateY(-2px)";
                 e.currentTarget.style.boxShadow =
-                  "0 14px 36px rgba(139,92,246,0.45), 0 6px 14px rgba(236,72,153,0.3)";
+                  "0 20px 48px rgba(139,92,246,0.55), 0 10px 22px rgba(236,72,153,0.38)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
                 e.currentTarget.style.boxShadow =
-                  "0 10px 30px rgba(139,92,246,0.35), 0 4px 12px rgba(236,72,153,0.25)";
+                  "0 14px 40px rgba(139,92,246,0.45), 0 6px 16px rgba(236,72,153,0.3)";
               }}
             >
               잔잔히 둘러보기
+              <ArrowRight size={18} />
             </button>
+
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 11,
+                color: "rgba(203,213,225,0.65)",
+                letterSpacing: 0.2,
+              }}
+            >
+              데이터 출처 · 한국관광공사 TarRlteTarService1
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* Footer - 비 오는 거리 배경 이미지 (화면 좌우 꽉 채움) */}
         <footer
