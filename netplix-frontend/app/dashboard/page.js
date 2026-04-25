@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Search, Sparkles, ArrowRight, MapPin } from "lucide-react";
+import { Search, Sparkles, ArrowRight, MapPin, Compass, TrendingUp } from "lucide-react";
 import axios from "@/lib/axiosConfig";
 import { getApiBaseUrl } from "@/lib/apiConfig";
 import { Capacitor } from "@capacitor/core";
@@ -1822,20 +1822,20 @@ function DashboardContent() {
         })()}
 
         {/* CTA — 데이터로 잇는 산책 (TarRlteTarService1 기반 /related-spots) */}
-        {/* 푸터 직전 노출. 충분히 크고 톤은 잔잔하게 — 카테고리 스크롤 끝에서도 분명히 보이도록. */}
+        {/* 푸터 직전 노출. 카테고리 스크롤 끝에서도 한눈에 들어오도록 — 큰 히어로 + 관계 태그 카드 강조. */}
         <section
           aria-label="조용한 명소 옆, 사람들은 어디로 갔을까"
           style={{
-            marginTop: 56,
+            marginTop: 64,
             marginBottom: 16,
             position: "relative",
-            borderRadius: 24,
+            borderRadius: 28,
             overflow: "hidden",
-            border: "1px solid rgba(165,180,252,0.22)",
+            border: "1px solid rgba(165,180,252,0.28)",
             background:
-              "radial-gradient(120% 140% at 0% 0%, rgba(99,102,241,0.22), transparent 60%), radial-gradient(120% 140% at 100% 100%, rgba(236,72,153,0.18), transparent 60%), linear-gradient(160deg, rgba(15,23,42,0.92), rgba(8,12,28,0.96))",
+              "radial-gradient(120% 140% at 0% 0%, rgba(99,102,241,0.28), transparent 60%), radial-gradient(120% 140% at 100% 100%, rgba(236,72,153,0.22), transparent 60%), linear-gradient(160deg, rgba(15,23,42,0.94), rgba(8,12,28,0.97))",
             boxShadow:
-              "0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset",
+              "0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05) inset",
           }}
         >
           <div
@@ -1844,9 +1844,9 @@ function DashboardContent() {
               position: "absolute",
               inset: 0,
               backgroundImage:
-                "radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px)",
-              backgroundSize: "20px 20px",
-              opacity: 0.4,
+                "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)",
+              backgroundSize: "22px 22px",
+              opacity: 0.45,
               pointerEvents: "none",
             }}
           />
@@ -1854,15 +1854,30 @@ function DashboardContent() {
             aria-hidden
             style={{
               position: "absolute",
-              top: -120,
+              top: -160,
               left: "50%",
               transform: "translateX(-50%)",
-              width: 480,
-              height: 240,
+              width: 600,
+              height: 320,
               borderRadius: "50%",
               background:
-                "radial-gradient(closest-side, rgba(165,180,252,0.28), transparent)",
-              filter: "blur(8px)",
+                "radial-gradient(closest-side, rgba(165,180,252,0.36), transparent)",
+              filter: "blur(10px)",
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              bottom: -120,
+              right: -80,
+              width: 360,
+              height: 220,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(closest-side, rgba(236,72,153,0.22), transparent)",
+              filter: "blur(12px)",
               pointerEvents: "none",
             }}
           />
@@ -1870,51 +1885,84 @@ function DashboardContent() {
             style={{
               position: "relative",
               zIndex: 1,
-              padding: "clamp(40px, 7vw, 64px) clamp(20px, 4vw, 40px)",
+              padding: "clamp(56px, 9vw, 96px) clamp(20px, 4vw, 48px)",
               textAlign: "center",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 16,
-              minHeight: "clamp(360px, 48vw, 460px)",
+              gap: 22,
+              minHeight: "clamp(560px, 78vw, 720px)",
               justifyContent: "center",
             }}
           >
+            {/* Hero 아이콘 — 글로우 헤일로 + Sparkles */}
+            <div style={{ position: "relative", width: 96, height: 96 }}>
+              <div
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  inset: -22,
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(closest-side, rgba(196,181,253,0.55), transparent)",
+                  filter: "blur(10px)",
+                }}
+              />
+              <div
+                style={{
+                  position: "relative",
+                  width: 96,
+                  height: 96,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background:
+                    "linear-gradient(135deg, rgba(99,102,241,0.45), rgba(236,72,153,0.45))",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  boxShadow:
+                    "0 20px 50px rgba(139,92,246,0.45), 0 0 0 1px rgba(255,255,255,0.06) inset",
+                }}
+              >
+                <Sparkles size={42} color="#fff" strokeWidth={1.8} />
+              </div>
+            </div>
+
             <div
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "8px 16px",
+                padding: "10px 18px",
                 borderRadius: 999,
                 background:
-                  "linear-gradient(135deg, rgba(99,102,241,0.18), rgba(236,72,153,0.18))",
-                border: "1px solid rgba(165,180,252,0.35)",
+                  "linear-gradient(135deg, rgba(99,102,241,0.22), rgba(236,72,153,0.22))",
+                border: "1px solid rgba(165,180,252,0.45)",
                 color: "#c7d2fe",
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: 0.6,
+                fontSize: 13,
+                fontWeight: 800,
+                letterSpacing: 0.7,
                 textTransform: "uppercase",
-                boxShadow: "0 4px 14px rgba(99,102,241,0.18)",
+                boxShadow: "0 6px 18px rgba(99,102,241,0.22)",
               }}
             >
-              <Sparkles size={14} />
+              <Sparkles size={15} />
               한국관광공사 빅데이터 · 함께 다녀간 곳
             </div>
 
             <h3
               style={{
-                margin: "8px 0 0",
-                fontSize: "clamp(28px, 6.4vw, 44px)",
+                margin: 0,
+                fontSize: "clamp(34px, 8vw, 56px)",
                 fontWeight: 900,
-                lineHeight: 1.22,
-                letterSpacing: "-0.02em",
+                lineHeight: 1.18,
+                letterSpacing: "-0.025em",
                 background:
                   "linear-gradient(120deg, #fef3c7 0%, #fda4af 45%, #c4b5fd 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
-                textShadow: "0 2px 24px rgba(196,181,253,0.18)",
+                textShadow: "0 2px 28px rgba(196,181,253,0.22)",
               }}
             >
               조용한 명소 옆,
@@ -1926,9 +1974,9 @@ function DashboardContent() {
               style={{
                 margin: 0,
                 color: "#cbd5e1",
-                fontSize: "clamp(14px, 2.4vw, 16px)",
-                lineHeight: 1.85,
-                maxWidth: 520,
+                fontSize: "clamp(15px, 2.6vw, 17px)",
+                lineHeight: 1.9,
+                maxWidth: 560,
               }}
             >
               한 곳을 떠올려 보세요.
@@ -1938,37 +1986,92 @@ function DashboardContent() {
               데이터가 잔잔히 보여드릴게요.
             </p>
 
+            {/* 관계 태그 — 작은 칩 대신 강조된 3-카드 */}
             <div
               style={{
-                display: "flex",
-                flexWrap: "wrap",
-                justifyContent: "center",
-                gap: 8,
-                marginTop: 4,
+                marginTop: 8,
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 14,
+                width: "100%",
+                maxWidth: 720,
               }}
             >
               {[
-                "키워드로 따라가기",
-                "광역 17곳 빠른 탐색",
-                "함께 방문 빈도 1위부터",
-              ].map((tag) => (
-                <span
-                  key={tag}
+                {
+                  Icon: Search,
+                  title: "키워드로 따라가기",
+                  desc: "한 곳에서 시작",
+                  accent: "rgba(99,102,241,0.85)",
+                },
+                {
+                  Icon: Compass,
+                  title: "광역 17곳 빠른 탐색",
+                  desc: "지역으로 묶어 보기",
+                  accent: "rgba(139,92,246,0.85)",
+                },
+                {
+                  Icon: TrendingUp,
+                  title: "함께 방문 빈도 1위부터",
+                  desc: "rank 오름차순",
+                  accent: "rgba(236,72,153,0.85)",
+                },
+              ].map(({ Icon, title, desc, accent }) => (
+                <div
+                  key={title}
                   style={{
-                    display: "inline-flex",
+                    display: "flex",
                     alignItems: "center",
-                    gap: 6,
-                    padding: "6px 12px",
-                    borderRadius: 999,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    color: "#e2e8f0",
-                    fontSize: 12,
+                    gap: 12,
+                    padding: "16px 18px",
+                    borderRadius: 18,
+                    background:
+                      "linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+                    textAlign: "left",
                   }}
                 >
-                  <MapPin size={12} />
-                  {tag}
-                </span>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 14,
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: `linear-gradient(135deg, ${accent}, rgba(255,255,255,0.08))`,
+                      boxShadow: `0 6px 16px ${accent.replace(
+                        "0.85",
+                        "0.32"
+                      )}`,
+                    }}
+                  >
+                    <Icon size={22} color="#fff" strokeWidth={2} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        color: "#f1f5f9",
+                        fontSize: 14,
+                        fontWeight: 800,
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {title}
+                    </div>
+                    <div
+                      style={{
+                        color: "rgba(203,213,225,0.7)",
+                        fontSize: 12,
+                        marginTop: 2,
+                      }}
+                    >
+                      {desc}
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
 
@@ -1976,42 +2079,43 @@ function DashboardContent() {
               type="button"
               onClick={() => router.push("/related-spots")}
               style={{
-                marginTop: 20,
-                padding: "16px 32px",
+                marginTop: 24,
+                padding: "20px 40px",
                 borderRadius: 999,
                 border: "none",
                 cursor: "pointer",
-                fontSize: "clamp(15px, 2.6vw, 17px)",
-                fontWeight: 800,
+                fontSize: "clamp(16px, 2.8vw, 19px)",
+                fontWeight: 900,
                 color: "#fff",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 10,
+                gap: 12,
                 background:
                   "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)",
                 boxShadow:
-                  "0 14px 40px rgba(139,92,246,0.45), 0 6px 16px rgba(236,72,153,0.3)",
+                  "0 18px 48px rgba(139,92,246,0.55), 0 8px 20px rgba(236,72,153,0.38)",
                 transition: "transform 0.18s ease, box-shadow 0.18s ease",
+                letterSpacing: "0.01em",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.transform = "translateY(-3px)";
                 e.currentTarget.style.boxShadow =
-                  "0 20px 48px rgba(139,92,246,0.55), 0 10px 22px rgba(236,72,153,0.38)";
+                  "0 24px 60px rgba(139,92,246,0.7), 0 12px 28px rgba(236,72,153,0.5)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
                 e.currentTarget.style.boxShadow =
-                  "0 14px 40px rgba(139,92,246,0.45), 0 6px 16px rgba(236,72,153,0.3)";
+                  "0 18px 48px rgba(139,92,246,0.55), 0 8px 20px rgba(236,72,153,0.38)";
               }}
             >
               잔잔히 둘러보기
-              <ArrowRight size={18} />
+              <ArrowRight size={20} />
             </button>
 
             <div
               style={{
-                marginTop: 6,
-                fontSize: 11,
+                marginTop: 8,
+                fontSize: 12,
                 color: "rgba(203,213,225,0.65)",
                 letterSpacing: 0.2,
               }}
