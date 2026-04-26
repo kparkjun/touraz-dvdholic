@@ -99,6 +99,16 @@ const THEMES = {
     hoverGlow: '0 36px 80px -20px rgba(244, 63, 94, 0.55)',
     tagColor: '#a7f3d0',
   },
+  // Related Spots(함께 다녀간 곳 그래프) 전용 — "잔잔한 빅데이터 산책" 무드: 인디고 → 바이올렛 → 핑크
+  related: {
+    gradient: 'conic-gradient(from 0deg, #6366f1, #8b5cf6, #ec4899, #a78bfa, #6366f1)',
+    iconBg: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 55%, #ec4899 100%)',
+    textGrad: 'linear-gradient(90deg, #c7d2fe 0%, #c4b5fd 50%, #fbcfe8 100%)',
+    accentColor: '#c7d2fe',
+    glow: '0 24px 64px -20px rgba(139, 92, 246, 0.55)',
+    hoverGlow: '0 36px 80px -20px rgba(236, 72, 153, 0.6)',
+    tagColor: '#c7d2fe',
+  },
 };
 
 /** CineTrip용 보딩패스 사이드 라인 장식. */

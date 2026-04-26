@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, TrendingUp, PawPrint, Plane, PlaneTakeoff, Camera, Tent, Leaf, Stethoscope, Headphones, Radar } from 'lucide-react';
+import { Sparkles, TrendingUp, PawPrint, Plane, PlaneTakeoff, Camera, Tent, Leaf, Stethoscope, Headphones, Radar, Compass } from 'lucide-react';
 import Link from 'next/link';
 import axios from '@/lib/axiosConfig';
 import TravelPortalButton from '@/components/TravelPortalButton';
@@ -380,6 +380,18 @@ export default function TrendingRegionsWidget({ limit = 5, defaultPeriod = 'toda
             cta="한산한 촬영지 레이더 열기"
             Icon={Radar}
             theme="radar"
+            fullWidth
+          />
+        </div>
+        <div className="trw-cta-span-full">
+          <TravelPortalButton
+            href="/related-spots"
+            tag="Korea Tour Big Data · 함께 다녀간 곳"
+            title="조용한 명소 옆, 사람들은 어디로 갔을까"
+            desc="한 곳을 떠올려 보세요. 그 곁을 거닐던 사람들이 다음으로 향한 자리들을, 한국관광공사 TarRlteTarService1 데이터가 잔잔히 보여드릴게요."
+            cta="잔잔히 둘러보기"
+            Icon={Compass}
+            theme="related"
             fullWidth
           />
         </div>
