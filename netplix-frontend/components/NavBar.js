@@ -220,7 +220,7 @@ function AuthActions({ isLoggedIn, isAdmin, isAuthPage, pathname, onLogout }) {
 
   if (pathname === '/') {
     return (
-      <div className="app-nav-actions">
+      <div className="app-nav-actions app-nav-actions--landing">
         <Link
           href="/admin"
           className="app-chip app-chip-landing-owner"
