@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { Film, Info, Star, Sparkles, Crown } from "lucide-react";
+import { Film, Info, Star, Sparkles } from "lucide-react";
 
 function Main() {
   const router = useRouter();
@@ -112,40 +112,6 @@ function Main() {
           }}
         />
       ))}
-
-      {/* Owner Shortcut Button (top-right) */}
-      <motion.button
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-        whileHover={{ scale: 1.05, y: -2 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => router.push("/admin")}
-        aria-label={t("nav.owner")}
-        style={{
-          position: "fixed",
-          top: "calc(env(safe-area-inset-top, 0px) + 16px)",
-          right: "calc(env(safe-area-inset-right, 0px) + 16px)",
-          zIndex: 50,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "8px 14px",
-          background: "linear-gradient(135deg, rgba(251, 191, 36, 0.95), rgba(245, 158, 11, 0.95))",
-          color: "#3f2d00",
-          border: "1px solid rgba(255, 255, 255, 0.35)",
-          borderRadius: "999px",
-          fontSize: "13px",
-          fontWeight: 700,
-          cursor: "pointer",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          boxShadow: "0 6px 18px rgba(245, 158, 11, 0.35)",
-        }}
-      >
-        <Crown size={14} strokeWidth={2.5} />
-        <span>{t("nav.owner")}</span>
-      </motion.button>
 
       {/* Main Content */}
       <div

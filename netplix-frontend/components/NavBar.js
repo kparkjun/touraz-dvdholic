@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { setUserLanguage } from '@/lib/i18n';
-import { Globe } from 'lucide-react';
+import { Globe, Crown } from 'lucide-react';
 
 export default function NavBar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -218,7 +218,20 @@ function AuthActions({ isLoggedIn, isAdmin, isAuthPage, pathname, onLogout }) {
     );
   }
 
-  if (pathname === '/') return null;
+  if (pathname === '/') {
+    return (
+      <div className="app-nav-actions">
+        <Link
+          href="/admin"
+          className="app-chip app-chip-landing-owner"
+          aria-label={t('nav.owner')}
+        >
+          <Crown size={14} strokeWidth={2.5} />
+          <span>{t('nav.owner')}</span>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="app-nav-actions">

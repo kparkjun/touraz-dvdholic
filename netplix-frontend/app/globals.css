@@ -348,9 +348,10 @@ code {
 
 .app-nav {
   background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.95));
-  padding: 10px 0; padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+  padding: 14px 0 14px; padding-top: calc(env(safe-area-inset-top, 0px) + 14px);
   border-bottom: none; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  min-height: calc(env(safe-area-inset-top, 0px) + 64px);
 }
 
 .app-nav-inner {
@@ -477,6 +478,19 @@ code {
 .app-chip-mypage:hover { background: linear-gradient(135deg, #059669, #0e7490); transform: translateY(-2px); }
 .app-chip-owner { background: linear-gradient(135deg, #10b981, #0891b2); border: none; }
 .app-chip-owner:hover { background: linear-gradient(135deg, #059669, #0e7490); transform: translateY(-2px); }
+.app-chip-landing-owner {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.95), rgba(245, 158, 11, 0.95));
+  color: #3f2d00; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 999px;
+  font-size: 13px; font-weight: 700; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35); text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.app-chip-landing-owner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(245, 158, 11, 0.45);
+  color: #3f2d00;
+}
 .app-chip-button { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .app-route-wrap { width: 100%; margin: 0; padding: 0; }
 
