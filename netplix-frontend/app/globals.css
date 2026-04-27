@@ -367,9 +367,10 @@ code {
 
 .app-nav-actions { flex: 0 0 auto; margin-right: 12px; position: relative; display: flex; align-items: center; gap: 8px; }
 /* Landing(/) 전용 — 사장님 칩이 브랜드(뱀 아이콘)와 겹치지 않도록
- * 네비 안쪽 패딩(12px)과 자체 margin(12px)을 모두 무력화시켜 화면 우측 끝(safe-area)까지 밀어준다. */
+ * 화면 우측 끝까지 밀되, 끝에 자석처럼 붙지 않도록 약 10px 정도 호흡을 둔다.
+ * (.app-nav-inner padding-right 12px 를 -2px 로 상쇄 → 결과 10px 여백) */
 .app-nav-actions--landing {
-  margin-right: calc(env(safe-area-inset-right, 0px) - 12px);
+  margin-right: calc(env(safe-area-inset-right, 0px) - 2px);
 }
 
 .app-hamburger {
